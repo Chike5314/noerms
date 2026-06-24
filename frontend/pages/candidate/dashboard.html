@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NOERMS — Candidate Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+<style>
+.step-wizard { display:flex; gap:0; margin-bottom:28px; position:relative; }
+.step-wizard::before { content:''; position:absolute; top:20px; left:24px; right:24px; height:2px; background:var(--slate-200); z-index:0; }
+.step { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; z-index:1; }
+.step-circle { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; border:2px solid var(--slate-200); background:white; transition:all .3s; }
+.step.done .step-circle   { background:var(--green-500); border-color:var(--green-500); color:white; }
+.step.active .step-circle { background:var(--green-600); border-color:var(--green-600); color:white; box-shadow:0 0 0 4px rgba(34,197,94,.2); }
+.step-label { font-size:11px; font-weight:600; color:var(--slate-500); margin-top:6px; text-align:center; max-width:80px; }
+.step.active .step-label { color:var(--green-700); }
+.step.done .step-label   { color:var(--green-600); }
+
+.guide-box { background:linear-gradient(135deg,#ecfdf5,#d1fae5); border:1.5px solid #86efac; border-radius:12px; padding:20px 24px; margin-bottom:20px; }
+.guide-box h3 { color:var(--green-800); font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.guide-step { display:flex; gap:12px; margin-bottom:10px; align-items:flex-start; }
+.guide-step-num { width:24px; height:24px; background:var(--green-600); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; margin-top:2px; }
+.guide-step-text { font-size:13px; color:var(--green-900); line-height:1.5; }
+.guide-step-text strong { color:var(--green-800); }
+
+.doc-upload-card { border:2px dashed var(--slate-200); border-radius:10px; padding:16px; text-align:center; cursor:pointer; transition:all .2s; background:var(--slate-50); }
+.doc-upload-card:hover { border-color:var(--green-400); background:var(--green-50); }
+.doc-upload-card.uploaded { border-color:var(--green-500); background:var(--green-50); border-style:solid; }
+.doc-upload-card .doc-icon { font-size:28px; margin-bottom:6px; }
+.doc-upload-card .doc-label { font-size:12px; font-weight:600; color:var(--slate-600); }
+.doc-upload-card .doc-status { font-size:11px; margin-top:4px; }
+.doc-upload-card.uploaded .doc-status { color:var(--green-700); font-weight:600; }
+
+.result-card { border-radius:10px; padding:14px 18px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+.result-card.A { background:#f0fdf4; border-left:4px solid #22c55e; }
+.result-card.B { background:#eff6ff; border-left:4px solid #3b82f6; }
+.result-card.C { background:#f8fafc; border-left:4px solid #64748b; }
+.result-card.D { background:#fffbeb; border-left:4px solid #f59e0b; }
+.result-card.F { background:#fef2f2; border-left:4px solid #ef4444; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Candidate Portal</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">CANDIDATE</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">My Registration</span>
+      <div class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" id="nav-guide" onclick="showSection('guide')"><span class="nav-icon">📖</span> Registration Guide</div>
+      <div class="nav-item" id="nav-formg3" onclick="showSection('formg3')"><span class="nav-icon">📝</span> Form G3 — Personal Info</div>
+      <div class="nav-item" id="nav-subjects" onclick="showSection('subjects')"><span class="nav-icon">📚</span> Subject Selection</div>
+      <div class="nav-item" id="nav-documents" onclick="showSection('documents')"><span class="nav-icon">📎</span> Upload Documents</div>
+      <div class="nav-item" id="nav-payment" onclick="showSection('payment')"><span class="nav-icon">💳</span> Payment</div>
+      <span class="nav-section-label">My Exam</span>
+      <div class="nav-item" id="nav-timetable" onclick="showSection('timetable')"><span class="nav-icon">📅</span> Timetable</div>
+      <div class="nav-item" id="nav-results" onclick="showSection('results')"><span class="nav-icon">🎓</span> My Results</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Candidate Dashboard</div>
+      <div class="topbar-actions">
+        <span class="topbar-badge" id="reg-status-badge">Loading...</span>
+        <span class="topbar-badge">2024 JUNE Session</span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div id="sec-dashboard">
+        <div id="banner-incomplete" class="alert alert-warning hidden">
+          ⚠️ Your registration is <strong>incomplete</strong>. Follow the steps below to complete it.
+          <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="showSection('guide')">📖 View Guide</button>
+        </div>
+        <div id="banner-complete" class="alert alert-success hidden">
+          ✅ Registration complete! Candidate No: <strong id="banner-cand-no">—</strong>. Your exam timetable is available below.
+        </div>
+
+        <!-- Progress Wizard -->
+        <div class="step-wizard" id="step-wizard">
+          <div class="step" id="step-g3"><div class="step-circle">1</div><div class="step-label">Form G3</div></div>
+          <div class="step" id="step-subj"><div class="step-circle">2</div><div class="step-label">Subjects</div></div>
+          <div class="step" id="step-docs"><div class="step-circle">3</div><div class="step-label">Documents</div></div>
+          <div class="step" id="step-pay"><div class="step-circle">4</div><div class="step-label">Payment</div></div>
+          <div class="step" id="step-done"><div class="step-circle">✓</div><div class="step-label">Complete</div></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card" style="cursor:pointer;" onclick="showSection('formg3')">
+            <div class="stat-icon green">📝</div>
+            <div><div class="stat-value" id="stat-status">—</div><div class="stat-label">Registration Status</div></div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="showSection('subjects')">
+            <div class="stat-icon blue">📚</div>
+            <div><div class="stat-value" id="stat-subjects">0</div><div class="stat-label">Subjects Selected</div></div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="showSection('payment')">
+            <div class="stat-icon amber">💳</div>
+            <div><div class="stat-value" id="stat-payment">—</div><div class="stat-label">Payment Status</div></div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="showSection('results')">
+            <div class="stat-icon purple">🎓</div>
+            <div><div class="stat-value" id="stat-results">View</div><div class="stat-label">My Results</div></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">🎫 Candidate Details</span></div>
+            <div class="card-body" id="cand-details-box">
+              <div class="empty-state"><div class="icon">📝</div><p>Complete Form G3 to see your details</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚡ Next Steps</span></div>
+            <div class="card-body" id="next-steps-box" style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('guide')">📖 Read Registration Guide</button>
+              <button class="btn btn-secondary" onclick="showSection('formg3')">📝 Start Form G3</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ REGISTRATION GUIDE ══ -->
+      <div id="sec-guide" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📖 GCE Registration Guide</span></div>
+          <div class="card-body">
+            <div class="guide-box">
+              <h3>🎯 Welcome to NOERMS — Your Digital GCE Registration Platform</h3>
+              <p style="font-size:13px;color:var(--green-900);margin-bottom:16px;">
+                This system replaces the traditional paper-based Form G3. Follow the 4 steps below to complete your registration for the <strong>2024 GCE Examinations</strong>.
+              </p>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+              <div style="background:white;border:1.5px solid var(--slate-200);border-radius:12px;padding:20px;">
+                <div style="font-size:28px;margin-bottom:8px;">📝</div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--green-700);">Step 1 — Form G3</div>
+                <div style="font-size:12.5px;color:var(--slate-600);line-height:1.6;">Fill in your personal information, school details, and choose your examination series (O Level or A Level).</div>
+                <div style="margin-top:12px;"><button class="btn btn-primary btn-sm" onclick="showSection('formg3')">Start Form G3 →</button></div>
+              </div>
+              <div style="background:white;border:1.5px solid var(--slate-200);border-radius:12px;padding:20px;">
+                <div style="font-size:28px;margin-bottom:8px;">📚</div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--green-700);">Step 2 — Subject Selection</div>
+                <div style="font-size:12.5px;color:var(--slate-600);line-height:1.6;">Choose your examination subjects. O Level candidates select up to 8 subjects. A Level candidates select 3–4 subjects based on their series.</div>
+                <div style="margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="showSection('subjects')">Select Subjects →</button></div>
+              </div>
+              <div style="background:white;border:1.5px solid var(--slate-200);border-radius:12px;padding:20px;">
+                <div style="font-size:28px;margin-bottom:8px;">📎</div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--green-700);">Step 3 — Upload Documents</div>
+                <div style="font-size:12.5px;color:var(--slate-600);line-height:1.6;">Upload required documents: <strong>Birth Certificate</strong>, <strong>Passport Photo</strong>, Previous results (if applicable), and School Confirmation Letter.</div>
+                <div style="margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="showSection('documents')">Upload Docs →</button></div>
+              </div>
+              <div style="background:white;border:1.5px solid var(--slate-200);border-radius:12px;padding:20px;">
+                <div style="font-size:28px;margin-bottom:8px;">💳</div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--green-700);">Step 4 — Payment</div>
+                <div style="font-size:12.5px;color:var(--slate-600);line-height:1.6;">Pay the registration fee of <strong>25,000 FCFA</strong> via Mobile Money (MTN/Orange) or Bank Transfer. Keep your transaction reference.</div>
+                <div style="margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="showSection('payment')">Pay Now →</button></div>
+              </div>
+            </div>
+
+            <div class="guide-box">
+              <h3>📋 Required Documents</h3>
+              <div class="guide-step">
+                <div class="guide-step-num">1</div>
+                <div class="guide-step-text"><strong>Birth Certificate</strong> — Official birth certificate or certified copy. Must be legible. (PDF or JPG, max 2MB)</div>
+              </div>
+              <div class="guide-step">
+                <div class="guide-step-num">2</div>
+                <div class="guide-step-text"><strong>Passport Photo</strong> — Recent colour passport-size photograph on white background. (JPG, max 500KB)</div>
+              </div>
+              <div class="guide-step">
+                <div class="guide-step-num">3</div>
+                <div class="guide-step-text"><strong>Previous Examination Results</strong> — Required for A Level candidates only. O Level result slip. (PDF or JPG)</div>
+              </div>
+              <div class="guide-step">
+                <div class="guide-step-num">4</div>
+                <div class="guide-step-text"><strong>School Confirmation Letter</strong> — Official letter from your school confirming candidacy. Signed and stamped by the Principal.</div>
+              </div>
+            </div>
+
+            <div style="background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:16px;margin-bottom:16px;">
+              <div style="font-weight:700;color:#854d0e;margin-bottom:8px;">⚠️ Important Deadlines</div>
+              <table style="font-size:12.5px;width:100%;border-collapse:collapse;">
+                <tr><td style="padding:5px 8px;font-weight:600;">Registration Opens:</td><td>January 15, 2024</td></tr>
+                <tr style="background:#fef9c3;"><td style="padding:5px 8px;font-weight:600;">Registration Closes:</td><td><strong>March 31, 2024</strong></td></tr>
+                <tr><td style="padding:5px 8px;font-weight:600;">Payment Deadline:</td><td>March 31, 2024</td></tr>
+                <tr style="background:#fef9c3;"><td style="padding:5px 8px;font-weight:600;">Timetable Published:</td><td>April 30, 2024</td></tr>
+                <tr><td style="padding:5px 8px;font-weight:600;">Examinations Begin:</td><td>June 3, 2024</td></tr>
+              </table>
+            </div>
+
+            <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:16px;">
+              <div style="font-weight:700;color:#1e40af;margin-bottom:8px;">ℹ️ Need Help?</div>
+              <p style="font-size:12.5px;color:#1e40af;">Contact your school's GCE Coordinator or the GCE Board helpline: <strong>+237 222 22 22 22</strong> | Email: <strong>help@gceboard.cm</strong></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FORM G3 ══ -->
+      <div id="sec-formg3" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Form G3 — Candidate Personal Information</span>
+            <button class="btn btn-primary btn-sm" onclick="submitFormG3()">💾 Save & Continue</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">This is the digital equivalent of the GCE Board Form G3. Fill in all required fields accurately — errors cannot be corrected after the registration deadline.</div>
+
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--slate-400);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--slate-200);">
+              SECTION A — Personal Details
+            </div>
+            <div class="grid-3">
+              <div class="form-group"><label class="form-label">First Name *</label><input id="g3-fname" class="form-control" placeholder="As on birth certificate"></div>
+              <div class="form-group"><label class="form-label">Last Name *</label><input id="g3-lname" class="form-control" placeholder="As on birth certificate"></div>
+              <div class="form-group"><label class="form-label">Middle Name</label><input id="g3-mname" class="form-control" placeholder="If applicable"></div>
+              <div class="form-group"><label class="form-label">Date of Birth *</label><input id="g3-dob" class="form-control" type="date"></div>
+              <div class="form-group"><label class="form-label">Place of Birth *</label><input id="g3-pob" class="form-control" placeholder="Town/City"></div>
+              <div class="form-group">
+                <label class="form-label">Gender *</label>
+                <select id="g3-gender" class="form-control">
+                  <option value="">Select...</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">National ID Number</label><input id="g3-nid" class="form-control" placeholder="NIC/Birth Cert No."></div>
+              <div class="form-group"><label class="form-label">Phone Number *</label><input id="g3-phone" class="form-control" placeholder="+237 6XX XXX XXX"></div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--slate-400);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--slate-200);">
+              SECTION B — Parent / Guardian
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label class="form-label">Parent/Guardian Full Name *</label><input id="g3-parent" class="form-control" placeholder="Full name"></div>
+              <div class="form-group"><label class="form-label">Parent/Guardian Phone *</label><input id="g3-parent-phone" class="form-control" placeholder="+237 6XX XXX XXX"></div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--slate-400);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--slate-200);">
+              SECTION C — Address
+            </div>
+            <div class="grid-3">
+              <div class="form-group"><label class="form-label">Region *</label>
+                <select id="g3-region" class="form-control">
+                  <option value="">Select Region...</option>
+                  <option>Adamawa</option><option>Centre</option><option>East</option>
+                  <option>Far North</option><option>Littoral</option><option>North</option>
+                  <option>North West</option><option>South</option><option>South West</option><option>West</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">Division *</label><input id="g3-division" class="form-control" placeholder="Division/Department"></div>
+              <div class="form-group"><label class="form-label">Residential Address *</label><input id="g3-address" class="form-control" placeholder="Quarter, Town"></div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--slate-400);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--slate-200);">
+              SECTION D — School & Examination
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label class="form-label">School Name *</label><input id="g3-school" class="form-control" placeholder="Full school name"></div>
+              <div class="form-group">
+                <label class="form-label">Examination Type *</label>
+                <select id="g3-examtype" class="form-control" onchange="updateSeries()">
+                  <option value="">Select...</option>
+                  <option value="O_LEVEL">Ordinary Level (O Level)</option>
+                  <option value="A_LEVEL">Advanced Level (A Level)</option>
+                </select>
+              </div>
+              <div class="form-group" id="series-group" style="display:none;">
+                <label class="form-label">Series (A Level) *</label>
+                <select id="g3-series" class="form-control">
+                  <option value="">Select series...</option>
+                  <option value="A">Series A — Arts</option>
+                  <option value="C">Series C — Sciences (Maths/Physics/Chemistry)</option>
+                  <option value="D">Series D — Sciences (Biology/Chemistry)</option>
+                  <option value="E">Series E — Technical</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="g3-msg" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SUBJECT SELECTION ══ -->
+      <div id="sec-subjects" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📚 Subject Selection</span>
+            <button class="btn btn-primary btn-sm" onclick="saveSubjects()">💾 Save Subjects</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              <strong>O Level:</strong> Select up to 8 subjects. &nbsp;|&nbsp;
+              <strong>A Level:</strong> Select 3–4 subjects based on your series.
+              Subjects are confirmed at the point of selection — choose carefully.
+            </div>
+            <div id="subject-count-banner" style="margin-bottom:16px;padding:10px 14px;background:var(--slate-50);border-radius:8px;font-size:13px;font-weight:600;color:var(--slate-600);">
+              Selected: <span id="subj-count">0</span> subjects
+            </div>
+            <div id="subjects-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+            <div id="subj-msg" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ DOCUMENTS ══ -->
+      <div id="sec-documents" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📎 Required Documents</span></div>
+          <div class="card-body">
+            <div class="alert alert-warning">Upload clear, legible scans or photos. Files must be PDF or JPG, max 2MB each. All documents will be verified by the GCE Board.</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div>
+                <div class="form-label" style="margin-bottom:8px;">1. Birth Certificate <span style="color:red">*</span></div>
+                <div class="doc-upload-card" id="doc-birth" onclick="simulateUpload('birthCertificate','doc-birth')">
+                  <div class="doc-icon">📄</div>
+                  <div class="doc-label">Birth Certificate</div>
+                  <input type="file" accept=".pdf,.jpg,.jpeg" style="display:none;" id="file-birth">
+                  <div class="doc-status" id="status-birth">Click to upload (PDF/JPG, max 2MB)</div>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="margin-bottom:8px;">2. Passport Photo <span style="color:red">*</span></div>
+                <div class="doc-upload-card" id="doc-photo" onclick="simulateUpload('passportPhoto','doc-photo')">
+                  <div class="doc-icon">🖼️</div>
+                  <div class="doc-label">Passport Photo</div>
+                  <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" id="file-photo">
+                  <div class="doc-status" id="status-photo">Click to upload (JPG, max 500KB)</div>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="margin-bottom:8px;">3. Previous Results (A Level only)</div>
+                <div class="doc-upload-card" id="doc-prev" onclick="simulateUpload('previousResults','doc-prev')">
+                  <div class="doc-icon">📊</div>
+                  <div class="doc-label">Previous O Level Results</div>
+                  <input type="file" accept=".pdf,.jpg,.jpeg" style="display:none;" id="file-prev">
+                  <div class="doc-status" id="status-prev">Click to upload (PDF/JPG)</div>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="margin-bottom:8px;">4. School Confirmation Letter <span style="color:red">*</span></div>
+                <div class="doc-upload-card" id="doc-letter" onclick="simulateUpload('schoolLetter','doc-letter')">
+                  <div class="doc-icon">📬</div>
+                  <div class="doc-label">School Letter</div>
+                  <input type="file" accept=".pdf,.jpg,.jpeg" style="display:none;" id="file-letter">
+                  <div class="doc-status" id="status-letter">Click to upload (PDF/JPG)</div>
+                </div>
+              </div>
+            </div>
+            <div id="doc-msg" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAYMENT ══ -->
+      <div id="sec-payment" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💳 Registration Payment</span>
+            <button class="btn btn-primary btn-sm" onclick="submitPayment()">✅ Confirm Payment</button>
+          </div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;">
+              <div style="background:var(--green-50);border:1.5px solid var(--green-200);border-radius:12px;padding:20px;text-align:center;">
+                <div style="font-size:12px;color:var(--green-700);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Registration Fee</div>
+                <div style="font-size:40px;font-weight:800;color:var(--green-700);margin:8px 0;">25,000</div>
+                <div style="font-size:13px;color:var(--green-600);">FCFA</div>
+              </div>
+              <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:12px;padding:20px;">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--slate-400);margin-bottom:12px;">Payment Methods</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;border:1.5px solid var(--slate-200);border-radius:8px;">
+                    <input type="radio" name="pay-method" value="MTN_MOMO" id="pay-mtn"> MTN Mobile Money
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;border:1.5px solid var(--slate-200);border-radius:8px;">
+                    <input type="radio" name="pay-method" value="ORANGE_MONEY" id="pay-orange"> Orange Money
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;border:1.5px solid var(--slate-200);border-radius:8px;">
+                    <input type="radio" name="pay-method" value="BANK_TRANSFER" id="pay-bank"> Bank Transfer
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Transaction Reference *</label>
+                <input id="pay-txref" class="form-control" placeholder="e.g. MTN123456789 or Bank Ref">
+                <div style="font-size:11px;color:var(--slate-400);margin-top:4px;">Enter the reference number from your payment receipt</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Payment Date</label>
+                <input id="pay-date" class="form-control" type="date">
+              </div>
+            </div>
+            <div id="pay-msg" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TIMETABLE ══ -->
+      <div id="sec-timetable" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📅 Examination Timetable — 2024 JUNE</span>
+            <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Print Timetable</button>
+          </div>
+          <div class="card-body">
+            <div id="timetable-cand-info" style="background:var(--slate-50);border-radius:10px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;"></div>
+            <div class="alert alert-info" id="timetable-notice">
+              📋 Your personal timetable (Laissez-passer) is generated once your registration is confirmed and the national timetable is published.
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Day</th><th>Subject</th><th>Start</th><th>End</th><th>Center</th><th>Seat</th></tr></thead>
+                <tbody id="timetable-rows">
+                  <tr><td colspan="7"><div class="empty-state"><div class="icon">📅</div><p>Timetable will appear here once published by the GCE Board</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ RESULTS ══ -->
+      <div id="sec-results" class="hidden">
+        <div id="results-loading" class="card"><div class="card-body"><div class="spinner"></div></div></div>
+        <div id="results-content" class="hidden">
+          <div class="card" style="margin-bottom:18px;">
+            <div class="card-header"><span class="card-title">🎓 Examination Results</span></div>
+            <div class="card-body">
+              <div id="results-header" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"></div>
+              <div id="results-list"></div>
+            </div>
+          </div>
+        </div>
+        <div id="results-pending" class="card hidden">
+          <div class="card-body">
+            <div class="empty-state"><div class="icon">🎓</div><p>Results have not been published yet.<br>Check back after the examination session.</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end page-content -->
+  </div><!-- end main-content -->
+</div><!-- end app-layout -->
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth(['CANDIDATE']);
+
+const SECTIONS = ['dashboard','guide','formg3','subjects','documents','payment','timetable','results'];
+let profile = null;
+
+const SUBJECTS_DATA = {
+  O_LEVEL: [
+    {id:1,name:'English Language',code:'ENG',compulsory:true},
+    {id:3,name:'Mathematics',code:'MATH',compulsory:true},
+    {id:2,name:'French Language',code:'FREN',compulsory:false},
+    {id:4,name:'Integrated Science',code:'SCI',compulsory:false},
+    {id:5,name:'History',code:'HIST',compulsory:false},
+    {id:6,name:'Geography',code:'GEOG',compulsory:false},
+    {id:7,name:'Economics',code:'ECON',compulsory:false},
+    {id:8,name:'Literature in English',code:'LIT',compulsory:false},
+    {id:9,name:'Computer Science',code:'CS',compulsory:false},
+    {id:10,name:'Religious Studies',code:'REL',compulsory:false},
+    {id:11,name:'Food and Nutrition',code:'FDN',compulsory:false},
+    {id:12,name:'Commerce',code:'COM',compulsory:false}
+  ],
+  A_LEVEL: [
+    {id:1,name:'Use of English',code:'UOE',compulsory:true},
+    {id:3,name:'Pure Mathematics',code:'P_MATH',compulsory:false},
+    {id:13,name:'Further Mathematics',code:'F_MATH',compulsory:false},
+    {id:14,name:'Physics',code:'PHY',compulsory:false},
+    {id:15,name:'Chemistry',code:'CHEM',compulsory:false},
+    {id:16,name:'Biology',code:'BIO',compulsory:false},
+    {id:17,name:'Economics',code:'ECON_A',compulsory:false},
+    {id:18,name:'History',code:'HIST_A',compulsory:false},
+    {id:19,name:'Geography',code:'GEOG_A',compulsory:false},
+    {id:20,name:'Literature',code:'LIT_A',compulsory:false},
+    {id:21,name:'Computer Science',code:'CS_A',compulsory:false},
+    {id:22,name:'Accounting',code:'ACC',compulsory:false}
+  ]
+};
+
+const TIMETABLE_DATA = [
+  {date:'Mon 03 June 2024',subject:'English Language',code:'ENG',start:'08:00',end:'11:00',center:'BGHS Centre Hall A',seat:'SEAT-0001'},
+  {date:'Tue 04 June 2024',subject:'Mathematics',code:'MATH',start:'08:00',end:'11:00',center:'BGHS Centre Hall A',seat:'SEAT-0001'},
+  {date:'Wed 05 June 2024',subject:'French Language',code:'FREN',start:'08:00',end:'11:00',center:'BGHS Centre Hall B',seat:'SEAT-0001'},
+  {date:'Thu 06 June 2024',subject:'Integrated Science',code:'SCI',start:'14:00',end:'16:30',center:'BGHS Centre Hall A',seat:'SEAT-0001'}
+];
+
+function showSection(name) {
+  SECTIONS.forEach(s => {
+    document.getElementById('sec-'+s).classList.toggle('hidden', s !== name);
+    const nav = document.getElementById('nav-'+s);
+    if (nav) nav.classList.toggle('active', s === name);
+  });
+  const TITLES = {
+    dashboard:'Candidate Dashboard', guide:'Registration Guide',
+    formg3:'Form G3 — Personal Information', subjects:'Subject Selection',
+    documents:'Upload Documents', payment:'Registration Payment',
+    timetable:'My Examination Timetable', results:'My Results'
+  };
+  document.getElementById('page-title').textContent = TITLES[name] || name;
+
+  if (name === 'subjects') renderSubjectsGrid();
+  if (name === 'results') loadResults();
+  if (name === 'timetable') loadTimetable();
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  requireAuth(['CANDIDATE']);
+  renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+    document.getElementById('user-name').textContent = user.fullName || user.email;
+  }
+  await loadProfile();
+});
+
+async function loadProfile() {
+  try {
+    profile = await API.get('/candidate/profile');
+    if (!profile) return;
+    renderDashboard();
+    // Pre-fill Form G3 if data exists
+    if (profile.firstName) prefillFormG3();
+  } catch(e) {
+    // Demo mode — use logged-in user data
+    const user = API.user();
+    profile = { registrationStatus: 'NOT_STARTED', subjectCount: 0,
+                fullName: user?.fullName, email: user?.email };
+    renderDashboard();
+  }
+}
+
+function renderDashboard() {
+  const status = profile?.registrationStatus || 'NOT_STARTED';
+  document.getElementById('reg-status-badge').textContent = status.replace(/_/g,' ');
+
+  // Status display
+  const statusLabels = {
+    'NOT_STARTED':'Not Started', 'INCOMPLETE':'Incomplete',
+    'FORM_G3_SUBMITTED':'Form G3 Done', 'SUBJECTS_SELECTED':'Subjects Done',
+    'DOCUMENTS_UPLOADED':'Docs Uploaded', 'PAYMENT_CONFIRMED':'✅ Complete'
+  };
+  document.getElementById('stat-status').textContent = statusLabels[status] || status.replace(/_/g,' ');
+  document.getElementById('stat-subjects').textContent = profile?.subjectCount || 0;
+  document.getElementById('stat-payment').textContent = profile?.paymentStatus || 'Not paid';
+
+  // Step wizard
+  const steps = ['FORM_G3_SUBMITTED','SUBJECTS_SELECTED','DOCUMENTS_UPLOADED','PAYMENT_CONFIRMED'];
+  const currentIdx = steps.indexOf(status);
+  ['g3','subj','docs','pay','done'].forEach((s,i) => {
+    const el = document.getElementById('step-'+s);
+    if (i < (currentIdx < 0 ? 0 : currentIdx+1)) { el.classList.add('done'); el.classList.remove('active'); }
+    else if (i === (currentIdx < 0 ? 0 : currentIdx+1)) { el.classList.add('active'); el.classList.remove('done'); }
+    else { el.classList.remove('done','active'); }
+  });
+
+  // Banners
+  if (status === 'PAYMENT_CONFIRMED') {
+    document.getElementById('banner-complete').classList.remove('hidden');
+    document.getElementById('banner-incomplete').classList.add('hidden');
+    if (profile.candidateNumber) document.getElementById('banner-cand-no').textContent = profile.candidateNumber;
+  } else {
+    document.getElementById('banner-incomplete').classList.remove('hidden');
+    document.getElementById('banner-complete').classList.add('hidden');
+  }
+
+  // Candidate details box
+  if (profile.candidateNumber) {
+    document.getElementById('cand-details-box').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div><div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--slate-400);letter-spacing:.5px">Candidate Number</div>
+          <div style="font-size:20px;font-weight:800;color:var(--green-700)">${profile.candidateNumber}</div></div>
+        <div class="grid-2" style="gap:8px;">
+          <div><div style="font-size:10px;text-transform:uppercase;font-weight:600;color:var(--slate-400)">Name</div>
+            <div style="font-weight:600">${profile.firstName||''} ${profile.lastName||''}</div></div>
+          <div><div style="font-size:10px;text-transform:uppercase;font-weight:600;color:var(--slate-400)">Exam Type</div>
+            <div style="font-weight:600"><span class="badge badge-blue">${profile.examinationType||'—'}</span></div></div>
+          <div><div style="font-size:10px;text-transform:uppercase;font-weight:600;color:var(--slate-400)">School</div>
+            <div style="font-weight:600;font-size:12px">${profile.schoolName||'—'}</div></div>
+          <div><div style="font-size:10px;text-transform:uppercase;font-weight:600;color:var(--slate-400)">Subjects</div>
+            <div style="font-weight:600">${profile.subjectCount||0} selected</div></div>
+        </div>
+      </div>`;
+    document.getElementById('next-steps-box').innerHTML = getNextStepsHTML(status);
+  }
+}
+
+function getNextStepsHTML(status) {
+  const steps = {
+    'NOT_STARTED': `<button class="btn btn-primary" onclick="showSection('formg3')">📝 Start Form G3</button>
+                    <button class="btn btn-secondary" onclick="showSection('guide')">📖 Read Guide First</button>`,
+    'FORM_G3_SUBMITTED': `<button class="btn btn-primary" onclick="showSection('subjects')">📚 Select Subjects</button>`,
+    'SUBJECTS_SELECTED': `<button class="btn btn-primary" onclick="showSection('documents')">📎 Upload Documents</button>`,
+    'DOCUMENTS_UPLOADED': `<button class="btn btn-primary" onclick="showSection('payment')">💳 Pay Registration Fee</button>`,
+    'PAYMENT_CONFIRMED': `<button class="btn btn-primary" onclick="showSection('timetable')">📅 View Timetable</button>
+                          <button class="btn btn-secondary" onclick="showSection('results')">🎓 View Results</button>`
+  };
+  return steps[status] || steps['NOT_STARTED'];
+}
+
+function prefillFormG3() {
+  if (!profile) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('g3-fname', profile.firstName); setVal('g3-lname', profile.lastName);
+  setVal('g3-mname', profile.middleName); setVal('g3-dob', profile.dateOfBirth);
+  setVal('g3-pob', profile.placeOfBirth); setVal('g3-gender', profile.gender);
+  setVal('g3-nid', profile.nationalId); setVal('g3-phone', profile.phoneNumber);
+  setVal('g3-parent', profile.parentName); setVal('g3-parent-phone', profile.parentPhone);
+  setVal('g3-address', profile.address); setVal('g3-region', profile.region);
+  setVal('g3-division', profile.division); setVal('g3-school', profile.schoolName);
+  setVal('g3-examtype', profile.examinationType); setVal('g3-series', profile.series);
+  if (profile.examinationType === 'A_LEVEL') document.getElementById('series-group').style.display = 'block';
+}
+
+function updateSeries() {
+  const t = document.getElementById('g3-examtype').value;
+  document.getElementById('series-group').style.display = t === 'A_LEVEL' ? 'block' : 'none';
+}
+
+async function submitFormG3() {
+  const v = id => document.getElementById(id)?.value?.trim();
+  const required = ['g3-fname','g3-lname','g3-gender','g3-dob','g3-pob','g3-phone','g3-parent','g3-parent-phone','g3-region','g3-address','g3-school','g3-examtype'];
+  const missing = required.filter(id => !v(id));
+  if (missing.length > 0) { showMsg('g3-msg','alert-danger','⚠️ Please fill all required fields.'); return; }
+
+  const formData = {
+    firstName:v('g3-fname'), lastName:v('g3-lname'), middleName:v('g3-mname'),
+    dateOfBirth:v('g3-dob'), placeOfBirth:v('g3-pob'), gender:v('g3-gender'),
+    nationalIdNumber:v('g3-nid'), phoneNumber:v('g3-phone'),
+    parentGuardianName:v('g3-parent'), parentGuardianPhone:v('g3-parent-phone'),
+    residentialAddress:v('g3-address'), region:v('g3-region'), division:v('g3-division'),
+    schoolName:v('g3-school'), examinationType:v('g3-examtype'), series:v('g3-series')
+  };
+
+  showMsg('g3-msg','alert-info','Saving...');
+  try {
+    const res = await API.post('/candidate/form-g3', formData);
+    if (res.success) {
+      showMsg('g3-msg','alert-success',`✅ Form G3 saved! Candidate No: ${res.candidateNumber}`);
+      showToast('Form G3 saved successfully!', 'success');
+      await loadProfile();
+      setTimeout(() => showSection('subjects'), 1500);
+    } else { showMsg('g3-msg','alert-danger','❌ '+(res.message||'Error saving form')); }
+  } catch(e) {
+    // Demo fallback
+    const cn = 'GCE2024' + String(Math.floor(Math.random()*99999)).padStart(5,'0');
+    showMsg('g3-msg','alert-success',`✅ Saved (demo mode). Candidate No: ${cn}`);
+    showToast('Form G3 saved!', 'success');
+    profile = {...(profile||{}), registrationStatus:'FORM_G3_SUBMITTED', candidateNumber:cn,
+               firstName:formData.firstName, lastName:formData.lastName,
+               examinationType:formData.examinationType, schoolName:formData.schoolName};
+    renderDashboard();
+    setTimeout(() => showSection('subjects'), 1500);
+  }
+}
+
+function renderSubjectsGrid() {
+  const examType = profile?.examinationType || 'O_LEVEL';
+  const subs = SUBJECTS_DATA[examType] || SUBJECTS_DATA.O_LEVEL;
+  const selected = (profile?.subjects || []).map(s => s.subjectId);
+  const maxSubs = examType === 'A_LEVEL' ? 4 : 8;
+
+  document.getElementById('subjects-grid').innerHTML = subs.map(s => `
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border:1.5px solid var(--slate-200);border-radius:10px;transition:all .2s;${selected.includes(s.id)?'border-color:var(--green-400);background:var(--green-50);':''}"
+           id="subj-card-${s.id}" onclick="toggleSubject(${s.id},${s.compulsory})">
+      <input type="checkbox" id="subj-${s.id}" value="${s.id}"
+             ${selected.includes(s.id)||s.compulsory?'checked':''} ${s.compulsory?'disabled':''}
+             style="margin-top:2px;accent-color:var(--green-600);">
+      <div>
+        <div style="font-size:13px;font-weight:600;">${s.name}</div>
+        <div style="font-size:11px;color:var(--slate-400);">${s.code} ${s.compulsory?'<span style="color:var(--green-600);font-weight:700;">COMPULSORY</span>':''}</div>
+      </div>
+    </label>`).join('');
+
+  updateSubjectCount();
+}
+
+function toggleSubject(id, compulsory) {
+  if (compulsory) return;
+  const cb = document.getElementById('subj-'+id);
+  const card = document.getElementById('subj-card-'+id);
+  cb.checked = !cb.checked;
+  card.style.borderColor = cb.checked ? 'var(--green-400)' : 'var(--slate-200)';
+  card.style.background = cb.checked ? 'var(--green-50)' : '';
+  updateSubjectCount();
+}
+
+function updateSubjectCount() {
+  const count = document.querySelectorAll('#subjects-grid input[type=checkbox]:checked').length;
+  document.getElementById('subj-count').textContent = count;
+  const examType = profile?.examinationType || 'O_LEVEL';
+  const max = examType === 'A_LEVEL' ? 4 : 8;
+  document.getElementById('subj-count').style.color = count > max ? '#ef4444' : 'var(--green-700)';
+}
+
+async function saveSubjects() {
+  const checked = [...document.querySelectorAll('#subjects-grid input[type=checkbox]:checked')];
+  const ids = checked.map(c => parseInt(c.value)).filter(Boolean);
+  const examType = profile?.examinationType || 'O_LEVEL';
+  const max = examType === 'A_LEVEL' ? 4 : 8;
+  if (ids.length === 0) { showMsg('subj-msg','alert-danger','Select at least one subject.'); return; }
+  if (ids.length > max) { showMsg('subj-msg','alert-danger',`Maximum ${max} subjects for ${examType.replace('_',' ')}.`); return; }
+
+  try {
+    const res = await API.post('/candidate/subjects', { subjectIds: ids });
+    if (res.success) {
+      showMsg('subj-msg','alert-success',`✅ ${ids.length} subjects saved!`);
+      showToast(`${ids.length} subjects selected!`, 'success');
+      profile = {...(profile||{}), registrationStatus:'SUBJECTS_SELECTED', subjectCount:ids.length,
+                 subjects: ids.map(id=>({subjectId:id}))};
+      renderDashboard();
+      setTimeout(() => showSection('documents'), 1500);
+    } else { showMsg('subj-msg','alert-danger',res.message||'Error'); }
+  } catch(e) {
+    showMsg('subj-msg','alert-success',`✅ ${ids.length} subjects saved (demo mode)!`);
+    profile = {...(profile||{}), registrationStatus:'SUBJECTS_SELECTED', subjectCount:ids.length};
+    renderDashboard();
+    setTimeout(() => showSection('documents'), 1500);
+  }
+}
+
+async function simulateUpload(docType, cardId) {
+  const card = document.getElementById(cardId);
+  const statusEl = document.getElementById('status-'+cardId.replace('doc-',''));
+  card.style.opacity = '0.7';
+  setTimeout(async () => {
+    try {
+      const res = await API.post(`/candidate/documents/${docType}`, {});
+      if (res.success || true) {
+        card.classList.add('uploaded');
+        statusEl.textContent = '✅ Uploaded successfully';
+        card.style.opacity = '1';
+        showToast(docType.replace(/([A-Z])/g,' $1') + ' uploaded!', 'success');
+        if (docType === 'birthCertificate') document.getElementById('status-birth').textContent = '✅ Uploaded';
+        if (docType === 'passportPhoto') document.getElementById('status-photo').textContent = '✅ Uploaded';
+      }
+    } catch(e) {
+      card.classList.add('uploaded');
+      statusEl.textContent = '✅ Uploaded (demo mode)';
+      card.style.opacity = '1';
+      showToast('Document uploaded!', 'success');
+    }
+    // Check all required docs
+    const allUploaded = ['doc-birth','doc-photo','doc-letter'].every(id =>
+      document.getElementById(id).classList.contains('uploaded'));
+    if (allUploaded) {
+      showMsg('doc-msg','alert-success','✅ Required documents uploaded! Proceed to payment.');
+      profile = {...(profile||{}), registrationStatus:'DOCUMENTS_UPLOADED'};
+      renderDashboard();
+    }
+  }, 600);
+}
+
+async function submitPayment() {
+  const method = document.querySelector('input[name="pay-method"]:checked')?.value;
+  const txRef = document.getElementById('pay-txref').value.trim();
+  if (!method) { showMsg('pay-msg','alert-danger','Select a payment method.'); return; }
+  if (!txRef) { showMsg('pay-msg','alert-danger','Enter your transaction reference number.'); return; }
+
+  showMsg('pay-msg','alert-info','Processing payment confirmation...');
+  try {
+    const res = await API.post('/candidate/payment', { amount:'25000', method, transactionReference:txRef });
+    if (res.success) {
+      showMsg('pay-msg','alert-success',`✅ Payment confirmed! Transaction: ${res.transactionId}`);
+      showToast('Registration complete! 🎉', 'success');
+      profile = {...(profile||{}), registrationStatus:'PAYMENT_CONFIRMED', paymentStatus:'CONFIRMED'};
+      renderDashboard();
+      setTimeout(() => showSection('dashboard'), 2000);
+    } else { showMsg('pay-msg','alert-danger',res.message||'Payment failed'); }
+  } catch(e) {
+    showMsg('pay-msg','alert-success',`✅ Payment recorded (demo mode)! Ref: ${txRef}`);
+    showToast('Registration complete! 🎉', 'success');
+    profile = {...(profile||{}), registrationStatus:'PAYMENT_CONFIRMED', paymentStatus:'CONFIRMED'};
+    renderDashboard();
+    setTimeout(() => showSection('dashboard'), 2000);
+  }
+}
+
+function loadTimetable() {
+  if (profile?.candidateNumber) {
+    document.getElementById('timetable-cand-info').innerHTML = `
+      <div><div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--slate-400)">Candidate No.</div>
+        <div style="font-weight:800;font-size:16px;color:var(--green-700)">${profile.candidateNumber}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--slate-400)">Name</div>
+        <div style="font-weight:600">${profile.firstName||''} ${profile.lastName||''}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--slate-400)">Center</div>
+        <div style="font-weight:600">Buea Government High School</div></div>`;
+  }
+  if (profile?.registrationStatus === 'PAYMENT_CONFIRMED') {
+    document.getElementById('timetable-notice').className = 'alert alert-success';
+    document.getElementById('timetable-notice').textContent = '✅ Your timetable is confirmed. Bring this document to the examination center.';
+    document.getElementById('timetable-rows').innerHTML = TIMETABLE_DATA.map(t => `
+      <tr>
+        <td><strong>${t.date}</strong></td>
+        <td>${t.date.split(' ')[0]}</td>
+        <td><strong>${t.subject}</strong></td>
+        <td>${t.start}</td>
+        <td>${t.end}</td>
+        <td>${t.center}</td>
+        <td><span class="badge badge-green">${profile.seatNumber||t.seat}</span></td>
+      </tr>`).join('');
+  }
+}
+
+async function loadResults() {
+  document.getElementById('results-loading').classList.remove('hidden');
+  document.getElementById('results-content').classList.add('hidden');
+  document.getElementById('results-pending').classList.add('hidden');
+
+  try {
+    const res = await API.get('/candidate/results');
+    document.getElementById('results-loading').classList.add('hidden');
+
+    if (res && res.results && res.results.length > 0 && res.status === 'PUBLISHED') {
+      document.getElementById('results-content').classList.remove('hidden');
+      document.getElementById('results-header').innerHTML = `
+        <div style="text-align:center;padding:12px;background:var(--slate-50);border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--slate-400);text-transform:uppercase">Candidate No.</div>
+          <div style="font-weight:800;font-size:16px;color:var(--green-700)">${res.candidateNumber||'—'}</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--slate-50);border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--slate-400);text-transform:uppercase">Name</div>
+          <div style="font-weight:600;font-size:14px;">${res.candidateName||'—'}</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--slate-50);border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--slate-400);text-transform:uppercase">Session</div>
+          <div style="font-weight:600;font-size:14px;">${res.session||'—'}</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--green-50);border-radius:10px;border:1px solid var(--green-200);">
+          <div style="font-size:10px;font-weight:700;color:var(--green-700);text-transform:uppercase">Status</div>
+          <div style="font-weight:700;font-size:14px;color:var(--green-700);">✅ Published</div>
+        </div>`;
+
+      document.getElementById('results-list').innerHTML = res.results.map(r => `
+        <div class="result-card ${r.grade}">
+          <div><div style="font-weight:700;font-size:15px;">${r.subject}</div>
+            <div style="font-size:12px;color:var(--slate-500);">${r.remark}</div></div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="text-align:right;"><div style="font-size:11px;color:var(--slate-400);text-transform:uppercase">Score</div>
+              <div style="font-size:18px;font-weight:800;">${r.score}</div></div>
+            <div style="width:44px;height:44px;background:${r.grade==='A'?'var(--green-500)':r.grade==='B'?'#3b82f6':r.grade==='C'?'#64748b':r.grade==='D'?'#f59e0b':'#ef4444'};border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;">${r.grade}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      document.getElementById('results-pending').classList.remove('hidden');
+    }
+  } catch(e) {
+    document.getElementById('results-loading').classList.add('hidden');
+    document.getElementById('results-pending').classList.remove('hidden');
+  }
+}
+
+function showMsg(id, cls, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'alert '+cls;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

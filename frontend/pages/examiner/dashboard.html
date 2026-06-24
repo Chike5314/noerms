@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — Examiner Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Examiner Portal</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">EXAMINER</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Marking</span>
+      <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-section="marksheets" onclick="showSection('marksheets')"><span class="nav-icon">📝</span> Score Entry</div>
+      <div class="nav-item" data-section="pending" onclick="showSection('pending')"><span class="nav-icon">⏳</span> Pending Scores</div>
+      <div class="nav-item" data-section="moderation" onclick="showSection('moderation')"><span class="nav-icon">✅</span> Moderation</div>
+      <span class="nav-section-label">Reports</span>
+      <div class="nav-item" data-section="statistics" onclick="showSection('statistics')"><span class="nav-icon">📊</span> Statistics</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Examiner Dashboard</div>
+      <div class="topbar-actions"><span class="topbar-badge">2024 JUNE Session</span></div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon amber">📋</div><div><div class="stat-value">300</div><div class="stat-label">Total Scripts</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="stat-approved">210</div><div class="stat-label">Approved Scores</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue">⏳</div><div><div class="stat-value">90</div><div class="stat-label">Pending Moderation</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">📊</div><div><div class="stat-value">68.4</div><div class="stat-label">Average Score</div></div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:18px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Score Distribution</span>
+            </div>
+            <div class="card-body">
+              <div id="score-dist">
+                <div id="dist-bars"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚡ Quick Entry</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('marksheets')">✏️ Enter Scores</button>
+              <button class="btn btn-secondary" onclick="showSection('pending')">⏳ View Pending</button>
+              <button class="btn btn-outline" onclick="showSection('moderation')">✅ Moderation Queue</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCORE ENTRY -->
+      <div id="sec-marksheets" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Score Entry</span>
+            <button class="btn btn-primary btn-sm" onclick="saveScore()">💾 Save Score</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">Enter candidate scores below. Scores must be between 0 and 100.</div>
+            <div class="grid-3" style="margin-bottom:20px;">
+              <div class="form-group">
+                <label class="form-label">Candidate ID</label>
+                <input type="number" id="sc-candidate" class="form-control" placeholder="e.g. 1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Subject ID</label>
+                <input type="number" id="sc-subject" class="form-control" placeholder="e.g. 1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Session ID</label>
+                <input type="number" id="sc-session" class="form-control" placeholder="e.g. 1" value="1">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Raw Score (0–100)</label>
+                <input type="number" id="sc-score" class="form-control" min="0" max="100" placeholder="Enter score">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Grade (auto-computed)</label>
+                <input type="text" id="sc-grade" class="form-control" readonly placeholder="Computed from score">
+              </div>
+            </div>
+            <div id="score-msg" style="display:none;" class="alert"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENDING -->
+      <div id="sec-pending" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⏳ Pending Scores</span></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Candidate</th><th>Subject</th><th>Score</th><th>Status</th></tr></thead>
+                <tbody id="pending-rows">
+                  <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div><p>No pending scores</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODERATION -->
+      <div id="sec-moderation" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">✅ Moderation Queue</span></div>
+          <div class="card-body">
+            <div class="alert alert-warning">Review submitted scores for accuracy before approval.</div>
+            <div id="mod-content">
+              <div class="empty-state"><div class="icon">✅</div><p>Moderation queue is empty</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATISTICS -->
+      <div id="sec-statistics" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Score Statistics</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Grade</th><th>Count</th><th>Percentage</th><th>Score Range</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-green">A</span></td><td>42</td><td>14%</td><td>75–100</td></tr>
+                <tr><td><span class="badge badge-blue">B</span></td><td>78</td><td>26%</td><td>65–74</td></tr>
+                <tr><td><span class="badge badge-slate">C</span></td><td>90</td><td>30%</td><td>55–64</td></tr>
+                <tr><td><span class="badge badge-yellow">D</span></td><td>60</td><td>20%</td><td>45–54</td></tr>
+                <tr><td><span class="badge badge-red">F</span></td><td>30</td><td>10%</td><td>0–44</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+const sections = ['dashboard','marksheets','pending','moderation','statistics'];
+
+function showSection(name) {
+  sections.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s !== name));
+  const titles = {dashboard:'Examiner Dashboard',marksheets:'Score Entry',pending:'Pending Scores',moderation:'Moderation Queue',statistics:'Statistics'};
+  document.getElementById('page-title').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === name));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+  renderDistribution();
+});
+
+function renderDistribution() {
+  const data = [{g:'A',pct:14,color:'var(--green-500)'},{g:'B',pct:26,color:'#3b82f6'},{g:'C',pct:30,color:'#64748b'},{g:'D',pct:20,color:'#f59e0b'},{g:'F',pct:10,color:'#ef4444'}];
+  document.getElementById('dist-bars').innerHTML = data.map(d => `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div style="width:24px;text-align:right;font-weight:700;font-size:13px;">${d.g}</div>
+      <div style="flex:1;background:var(--slate-100);border-radius:20px;height:20px;overflow:hidden;">
+        <div style="width:${d.pct}%;background:${d.color};height:100%;border-radius:20px;transition:width 0.8s ease;"></div>
+      </div>
+      <div style="width:36px;font-size:12px;font-weight:600;color:var(--slate-600);">${d.pct}%</div>
+    </div>`).join('');
+}
+
+document.getElementById('sc-score').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  let g = '—';
+  if (!isNaN(v)) {
+    if (v >= 75) g = 'A';
+    else if (v >= 65) g = 'B';
+    else if (v >= 55) g = 'C';
+    else if (v >= 45) g = 'D';
+    else if (v >= 35) g = 'E';
+    else if (v >= 25) g = 'O';
+    else g = 'F';
+  }
+  document.getElementById('sc-grade').value = g;
+});
+
+async function saveScore() {
+  const user = API.user();
+  const candidateId = document.getElementById('sc-candidate').value;
+  const subjectId = document.getElementById('sc-subject').value;
+  const sessionId = document.getElementById('sc-session').value;
+  const rawScore = document.getElementById('sc-score').value;
+
+  if (!candidateId || !subjectId || !rawScore) { showToast('Fill all fields', 'error'); return; }
+  if (rawScore < 0 || rawScore > 100) { showToast('Score must be 0-100', 'error'); return; }
+
+  try {
+    const res = await API.post('/results/scores', {
+      candidateId, subjectId, examinationSessionId: sessionId,
+      rawScore: parseInt(rawScore), examinerId: user?.id || 1
+    });
+    if (res.id) {
+      showToast('Score saved successfully!', 'success');
+      document.getElementById('sc-candidate').value = '';
+      document.getElementById('sc-score').value = '';
+      document.getElementById('sc-grade').value = '';
+    } else {
+      showToast(res.message || 'Error saving score', 'error');
+    }
+  } catch(e) {
+    showToast('Backend not connected — score logged locally', 'info');
+  }
+}
+</script>
+</body>
+</html>

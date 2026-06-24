@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — National Online Examination Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #22c55e; --green-d: #15803d; --green-l: #dcfce7;
+    --slate-900: #0f172a; --slate-800: #1e293b; --slate-600: #475569;
+    --slate-400: #94a3b8; --slate-200: #e2e8f0; --slate-100: #f1f5f9;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100vh;
+    background: var(--slate-900);
+    color: white;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    width: 55%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 64px;
+    background: linear-gradient(135deg, #0f172a 0%, #0d2218 50%, #0a1a12 100%);
+    overflow: hidden;
+  }
+  .left-panel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 600px 600px at -100px 50%, rgba(34,197,94,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 400px at 110% 20%, rgba(34,197,94,0.07) 0%, transparent 60%);
+  }
+  .grid-overlay {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(34,197,94,0.04) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(34,197,94,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .hero-content { position: relative; z-index: 1; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.25);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #86efac;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 28px;
+  }
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  .hero-title {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 20px;
+  }
+  .hero-title .accent { color: var(--green); }
+  .hero-desc {
+    font-size: 16px;
+    color: #94a3b8;
+    line-height: 1.7;
+    max-width: 420px;
+    margin-bottom: 40px;
+  }
+  .features {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .feature {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 14px; color: #cbd5e1;
+  }
+  .feature .icon {
+    width: 32px; height: 32px;
+    background: rgba(34,197,94,0.1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+
+  /* Module pills */
+  .modules-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 32px;
+  }
+  .module-pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    width: 45%;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+  }
+  .right-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 1px; height: 100%;
+    background: linear-gradient(to bottom, transparent, rgba(34,197,94,0.3) 40%, rgba(34,197,94,0.3) 60%, transparent);
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 4px 24px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.04);
+    border: 1px solid #e2e8f0;
+  }
+  .login-logo {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 28px;
+  }
+  .login-logo .logo-box {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--green), var(--green-d));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+  }
+  .login-logo .logo-text { font-size: 20px; font-weight: 800; color: #1e293b; }
+  .login-logo .logo-sub { font-size: 11px; color: #64748b; font-weight: 500; }
+
+  .login-heading { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+  .login-sub { font-size: 13.5px; color: #64748b; margin-bottom: 28px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+  .form-control {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  .form-control:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.12); background: white; }
+  .form-control::placeholder { color: #94a3b8; }
+
+  .btn-login {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--green), var(--green-d));
+    color: white; border: none;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(34,197,94,0.3);
+    margin-top: 4px;
+  }
+  .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,197,94,0.4); }
+  .btn-login:active { transform: translateY(0); }
+  .btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0; color: #94a3b8; font-size: 12px;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: #e2e8f0;
+  }
+
+  .demo-accounts {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .demo-accounts h4 {
+    font-size: 11px; font-weight: 700; color: #64748b;
+    text-transform: uppercase; letter-spacing: 0.7px;
+    margin-bottom: 10px;
+  }
+  .demo-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 6px;
+    padding: 5px 6px;
+  }
+  .demo-item:last-child { border-bottom: none; }
+  .demo-item:hover { background: #f1f5f9; }
+  .demo-role {
+    font-size: 11.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+    background: var(--green-l); color: var(--green-d);
+  }
+  .demo-email { font-size: 12px; color: #475569; }
+
+  .error-msg {
+    background: #fee2e2; color: #991b1b;
+    padding: 10px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    margin-bottom: 14px; display: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    .left-panel { width: 100%; padding: 40px 28px; min-height: 0; }
+    .right-panel { width: 100%; padding: 24px; }
+    .hero-title { font-size: 32px; }
+    .modules-row { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LEFT PANEL: Branding -->
+<div class="left-panel">
+  <div class="grid-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      GCE Board — Cameroon
+    </div>
+
+    <h1 class="hero-title">
+      National Exam<br>
+      <span class="accent">Management</span><br>
+      System
+    </h1>
+
+    <p class="hero-desc">
+      Complete digital platform for managing examinations — from candidate registration to results publication.
+    </p>
+
+    <div class="features">
+      <div class="feature"><div class="icon">🔐</div> Role-based access for all 7 user types</div>
+      <div class="feature"><div class="icon">📋</div> End-to-end registration & scheduling</div>
+      <div class="feature"><div class="icon">📊</div> Automated grading & results publication</div>
+      <div class="feature"><div class="icon">🔔</div> Real-time notifications & audit logging</div>
+    </div>
+
+    <div class="modules-row">
+      <span class="module-pill">🔐 Authentication</span>
+      <span class="module-pill">📝 Registration</span>
+      <span class="module-pill">📅 Scheduling</span>
+      <span class="module-pill">👁 Invigilation</span>
+      <span class="module-pill">🎓 Results</span>
+      <span class="module-pill">📊 Reporting</span>
+      <span class="module-pill">🔔 Notifications</span>
+      <span class="module-pill">⚙️ Administration</span>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL: Login form -->
+<div class="right-panel">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-box">🍏</div>
+      <div>
+        <div class="logo-text">NOERMS</div>
+        <div class="logo-sub">University of Buea · CEF476</div>
+      </div>
+    </div>
+
+    <h2 class="login-heading">Welcome back</h2>
+    <p class="login-sub">Sign in to your account to continue</p>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input type="email" id="email" class="form-control" placeholder="you@domain.cm" autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign in to NOERMS</button>
+
+    <div class="divider">Demo Accounts</div>
+
+    <div class="demo-accounts">
+      <h4>Click to autofill</h4>
+      <div class="demo-item" onclick="fill('jane.doe@email.com')">
+        <span class="demo-role">CANDIDATE</span>
+        <span class="demo-email">jane.doe@email.com</span>
+      </div>
+      <div class="demo-item" onclick="fill('john.smith@school.cm')">
+        <span class="demo-role">EXAMINER</span>
+        <span class="demo-email">john.smith@school.cm</span>
+      </div>
+      <div class="demo-item" onclick="fill('mary.jones@center.cm')">
+        <span class="demo-role">INVIGILATOR</span>
+        <span class="demo-email">mary.jones@center.cm</span>
+      </div>
+      <div class="demo-item" onclick="fill('admin@noerms.cm')">
+        <span class="demo-role">ADMIN</span>
+        <span class="demo-email">admin@noerms.cm</span>
+      </div>
+      <div class="demo-item" onclick="fill('official@minesec.cm')">
+        <span class="demo-role">MINISTRY</span>
+        <span class="demo-email">official@minesec.cm</span>
+      </div>
+      <div class="demo-item" onclick="fill('sysadmin@noerms.cm')">
+        <span class="demo-role">SYS ADMIN</span>
+        <span class="demo-email">sysadmin@noerms.cm</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+// If already logged in, redirect
+if (API.token()) {
+  const user = API.user();
+  if (user) window.location.href = ROLE_DASHBOARDS[user.role] || 'pages/admin/dashboard.html';
+}
+
+function fill(email) {
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = 'Password@123';
+}
+
+async function doLogin() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('error-msg');
+
+  if (!email || !password) {
+    showError('Please enter email and password.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await API.post('/auth/login', { email, password });
+    if (res.success && res.token) {
+      localStorage.setItem('noerms_token', res.token);
+      localStorage.setItem('noerms_user', JSON.stringify({
+        id: res.userId, email: res.email,
+        fullName: res.fullName, role: res.role
+      }));
+      window.location.href = ROLE_DASHBOARDS[res.role] || 'pages/admin/dashboard.html';
+    } else {
+      showError(res.message || 'Invalid credentials');
+      btn.disabled = false;
+      btn.textContent = 'Sign in to NOERMS';
+    }
+  } catch (e) {
+    showError('Cannot connect to server. Is the backend running on port 8080?');
+    btn.disabled = false;
+    btn.textContent = 'Sign in to NOERMS';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>

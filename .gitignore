@@ -1,0 +1,43 @@
+# Java
+*.class
+*.jar
+*.war
+target/
+.classpath
+.project
+.settings/
+
+# Maven
+.mvn/
+!.mvn/wrapper/
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# Logs
+logs/
+*.log
+backend-start.err.log
+backend-start.out.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker override
+docker-compose.override.yml
+
+# Node (if frontend tooling is ever added)
+node_modules/
+npm-debug.log*
+
+# Build/extracted artifacts
+*.zip
+/target/

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — Ministry Official Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Ministry Portal</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">MINISTRY OFFICIAL</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Overview</span>
+      <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-section="approval" onclick="showSection('approval')"><span class="nav-icon">✅</span> Result Approval</div>
+      <div class="nav-item" data-section="publish" onclick="showSection('publish')"><span class="nav-icon">📢</span> Publish Results</div>
+      <span class="nav-section-label">Analytics</span>
+      <div class="nav-item" data-section="national" onclick="showSection('national')"><span class="nav-icon">🇨🇲</span> National Statistics</div>
+      <div class="nav-item" onclick="window.location.href='../admin/analytics.html'"><span class="nav-icon">📊</span> Full Analytics</div>
+      <div class="nav-item" data-section="regional" onclick="showSection('regional')"><span class="nav-icon">🗺️</span> Regional Breakdown</div>
+      <div class="nav-item" data-section="export" onclick="showSection('export')"><span class="nav-icon">📥</span> Export Reports</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Ministry Dashboard</div>
+      <div class="topbar-actions">
+        <span class="topbar-badge" id="pub-status">Results: Pending Approval</span>
+        <span class="topbar-badge">2024 JUNE Session</span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard">
+        <div class="alert alert-warning" style="margin-bottom:24px;">
+          📋 <strong>200 results</strong> are awaiting your approval before publication.
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon blue">👥</div><div><div class="stat-value">100</div><div class="stat-label">Total Candidates</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">200</div><div class="stat-label">Results Submitted</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">⏳</div><div><div class="stat-value" id="stat-pending">200</div><div class="stat-label">Awaiting Approval</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">📢</div><div><div class="stat-value" id="stat-published">0</div><div class="stat-label">Published</div></div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:18px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">🇨🇲 National Performance Overview</span></div>
+            <div class="card-body">
+              <div id="national-chart"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚡ Actions</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('approval')">✅ Approve Results</button>
+              <button class="btn btn-secondary" onclick="showSection('national')">📊 View Statistics</button>
+              <button class="btn btn-outline" onclick="showSection('export')">📥 Export Report</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT APPROVAL -->
+      <div id="sec-approval" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">✅ Result Approval</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary btn-sm" onclick="approveAll()">✅ Approve All</button>
+              <button class="btn btn-danger btn-sm">❌ Reject</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">Review results submitted by NOERMS National Admin. Once approved, results can be published.</div>
+            <table>
+              <thead><tr><th>Session</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>2024 JUNE</strong></td>
+                  <td>100</td>
+                  <td>68.4</td>
+                  <td>90%</td>
+                  <td><span class="badge badge-yellow" id="approval-status">Pending</span></td>
+                  <td>
+                    <button class="btn btn-primary btn-sm" onclick="approveAll()">Approve</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PUBLISH -->
+      <div id="sec-publish" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📢 Publish Results</span>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning">⚠️ Publishing results is IRREVERSIBLE. Ensure all approvals are complete.</div>
+            <div style="padding:24px;text-align:center;">
+              <div style="font-size:48px;margin-bottom:16px;">📢</div>
+              <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="pub-btn-status">Ready to Publish</div>
+              <div style="color:var(--slate-500);margin-bottom:24px;">200 results approved and ready for publication</div>
+              <button class="btn btn-primary" style="padding:14px 40px;font-size:16px;" onclick="publishResults()">
+                📢 Publish 2024 JUNE Results
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NATIONAL STATS -->
+      <div id="sec-national" class="hidden">
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-icon green">🏆</div><div><div class="stat-value">90%</div><div class="stat-label">National Pass Rate</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue">📊</div><div><div class="stat-value">68.4</div><div class="stat-label">National Average</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">📚</div><div><div class="stat-value">6</div><div class="stat-label">Subjects Examined</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">🏫</div><div><div class="stat-value">1</div><div class="stat-label">Schools Participated</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Subject Performance</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Subject</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th><th>Distinction</th></tr></thead>
+              <tbody>
+                <tr><td>English Language</td><td>100</td><td>70.2</td><td>92%</td><td>18%</td></tr>
+                <tr><td>Mathematics</td><td>100</td><td>65.8</td><td>88%</td><td>14%</td></tr>
+                <tr><td>French Language</td><td>100</td><td>72.1</td><td>94%</td><td>22%</td></tr>
+                <tr><td>Integrated Science</td><td>50</td><td>67.3</td><td>86%</td><td>12%</td></tr>
+                <tr><td>History</td><td>50</td><td>69.5</td><td>90%</td><td>16%</td></tr>
+                <tr><td>Geography</td><td>50</td><td>71.0</td><td>91%</td><td>19%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REGIONAL -->
+      <div id="sec-regional" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">🗺️ Regional Performance Breakdown</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Region</th><th>Centers</th><th>Candidates</th><th>Pass Rate</th><th>Avg Score</th></tr></thead>
+              <tbody>
+                <tr><td><strong>South West</strong></td><td>1</td><td>100</td><td>90%</td><td>68.4</td></tr>
+                <tr><td>Centre</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                <tr><td>Littoral</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                <tr><td>North West</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div id="sec-export" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📥 Export Reports</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div style="padding:20px;border:1.5px solid var(--slate-200);border-radius:12px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:8px;">📊</div>
+                <div style="font-weight:700;margin-bottom:4px;">National Results Report</div>
+                <div style="color:var(--slate-500);font-size:13px;margin-bottom:16px;">Full breakdown of all results</div>
+                <button class="btn btn-primary" onclick="showToast('Report exported to Excel','success')">📥 Export Excel</button>
+              </div>
+              <div style="padding:20px;border:1.5px solid var(--slate-200);border-radius:12px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:8px;">📄</div>
+                <div style="font-weight:700;margin-bottom:4px;">Statistics Summary</div>
+                <div style="color:var(--slate-500);font-size:13px;margin-bottom:16px;">Regional and subject statistics</div>
+                <button class="btn btn-outline" onclick="showToast('PDF report generated','success')">📄 Export PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+const sections = ['dashboard','approval','publish','national','regional','export'];
+
+function showSection(name) {
+  sections.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s !== name));
+  const titles = {dashboard:'Ministry Dashboard',approval:'Result Approval',publish:'Publish Results',national:'National Statistics',regional:'Regional Breakdown',export:'Export Reports'};
+  document.getElementById('page-title').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === name));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+  renderNationalChart();
+});
+
+function renderNationalChart() {
+  const data = [{r:'SW',v:90},{r:'Ctr',v:0},{r:'Lit',v:0},{r:'NW',v:0}];
+  document.getElementById('national-chart').innerHTML = data.map(d=>`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <div style="width:36px;font-size:12px;font-weight:600;color:var(--slate-500);">${d.r}</div>
+      <div style="flex:1;background:var(--slate-100);border-radius:20px;height:20px;overflow:hidden;">
+        <div style="width:${d.v}%;background:var(--green-500);height:100%;border-radius:20px;"></div>
+      </div>
+      <div style="width:36px;font-size:12px;font-weight:700;">${d.v}%</div>
+    </div>`).join('');
+}
+
+function approveAll() {
+  document.getElementById('approval-status').textContent = 'Approved';
+  document.getElementById('approval-status').className = 'badge badge-green';
+  document.getElementById('stat-pending').textContent = '0';
+  document.getElementById('stat-published').textContent = '0';
+  document.getElementById('pub-btn-status').textContent = '✅ Approved — Ready to Publish';
+  document.getElementById('pub-status').textContent = 'Results: Approved ✅';
+  showToast('All 200 results approved!', 'success');
+}
+
+function publishResults() {
+  document.getElementById('stat-published').textContent = '200';
+  document.getElementById('pub-status').textContent = 'Results: PUBLISHED 📢';
+  document.getElementById('pub-btn-status').textContent = '📢 Results Published Successfully!';
+  showToast('2024 JUNE Results Published!', 'success');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Admin Console</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">ADMIN</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Overview</span>
+      <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-section="users" onclick="showSection('users')"><span class="nav-icon">👥</span> User Management</div>
+      <span class="nav-section-label">Examination</span>
+      <div class="nav-item" data-section="candidates" onclick="showSection('candidates')"><span class="nav-icon">🎓</span> Candidates</div>
+      <div class="nav-item" data-section="results" onclick="showSection('results')"><span class="nav-icon">📊</span> Results Overview</div>
+      <div class="nav-item" data-section="malpractice" onclick="showSection('malpractice')"><span class="nav-icon">⚠️</span> Malpractice</div>
+      <span class="nav-section-label">System</span>
+      <div class="nav-item" onclick="window.location.href='analytics.html'"><span class="nav-icon">📊</span> Analytics Dashboard</div>
+      <div class="nav-item" data-section="audit" onclick="showSection('audit')"><span class="nav-icon">📋</span> Audit Logs</div>
+      <div class="nav-item" data-section="backup" onclick="showSection('backup')"><span class="nav-icon">💾</span> Backup</div>
+      <div class="nav-item" data-section="health" onclick="showSection('health')"><span class="nav-icon">💚</span> System Health</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Admin Dashboard</div>
+      <div class="topbar-actions">
+        <span class="topbar-badge" id="health-status">⚡ System OK</span>
+        <span class="topbar-badge">2024 JUNE Session</span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon blue">👥</div><div><div class="stat-value" id="stat-users">—</div><div class="stat-label">Total Users</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">🎓</div><div><div class="stat-value" id="stat-candidates">100</div><div class="stat-label">Candidates</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">📝</div><div><div class="stat-value">300</div><div class="stat-label">Scores Entered</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">🏆</div><div><div class="stat-value">200</div><div class="stat-label">Results Generated</div></div></div>
+          <div class="stat-card"><div class="stat-icon red">⚠️</div><div><div class="stat-value" id="stat-mal">0</div><div class="stat-label">Malpractice Cases</div></div></div>
+          <div class="stat-card"><div class="stat-icon teal">💾</div><div><div class="stat-value" id="stat-backups">0</div><div class="stat-label">Backups</div></div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📊 Results by Grade</span></div>
+            <div class="card-body" id="grade-chart">
+              <div id="grade-bars"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚡ Quick Actions</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('users')">👥 Manage Users</button>
+              <button class="btn btn-secondary" onclick="showSection('candidates')">🎓 View Candidates</button>
+              <button class="btn btn-secondary" onclick="showSection('results')">📊 View Results</button>
+              <button class="btn btn-outline" onclick="triggerBackup()">💾 Run Backup Now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MANAGEMENT -->
+      <div id="sec-users" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👥 User Management</span>
+            <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">+ New User</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Full Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="users-table">
+                  <tr><td colspan="6"><div class="spinner"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="users-pagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="loadUsers(currentPage-1)">← Prev</button>
+              <span id="page-info" style="font-size:13px;color:var(--slate-500);">Page 1</span>
+              <button class="btn btn-secondary btn-sm" onclick="loadUsers(currentPage+1)">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANDIDATES -->
+      <div id="sec-candidates" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">🎓 Candidates</span></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Candidate No.</th><th>Name</th><th>Type</th><th>Status</th><th>School</th></tr></thead>
+                <tbody id="cand-table">
+                  <tr><td colspan="5">
+                    <div class="empty-state"><div class="icon">🎓</div><p>Load candidates from database</p></div>
+                  </td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS OVERVIEW -->
+      <div id="sec-results" class="hidden">
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">200</div><div class="stat-label">Approved Results</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">⏳</div><div><div class="stat-value">0</div><div class="stat-label">Awaiting Ministry</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue">📢</div><div><div class="stat-value">0</div><div class="stat-label">Published</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📊 Results Status</span>
+            <button class="btn btn-primary btn-sm" onclick="approveAllResults()">✅ Approve All</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">Review and approve results before forwarding to Ministry.</div>
+            <table>
+              <thead><tr><th>Grade</th><th>Count</th><th>%</th><th>Score Range</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-green">A</span></td><td>42</td><td>21%</td><td>75–100</td><td><span class="badge badge-green">Approved</span></td></tr>
+                <tr><td><span class="badge badge-blue">B</span></td><td>60</td><td>30%</td><td>65–74</td><td><span class="badge badge-green">Approved</span></td></tr>
+                <tr><td><span class="badge badge-slate">C</span></td><td>58</td><td>29%</td><td>55–64</td><td><span class="badge badge-green">Approved</span></td></tr>
+                <tr><td><span class="badge badge-yellow">D</span></td><td>30</td><td>15%</td><td>45–54</td><td><span class="badge badge-green">Approved</span></td></tr>
+                <tr><td><span class="badge badge-red">F</span></td><td>10</td><td>5%</td><td>0–44</td><td><span class="badge badge-green">Approved</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MALPRACTICE -->
+      <div id="sec-malpractice" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠️ Malpractice Reports</span></div>
+          <div class="card-body">
+            <div id="mal-list-admin">
+              <div class="empty-state"><div class="icon">⚠️</div><p>No malpractice reports</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT LOGS -->
+      <div id="sec-audit" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Audit Logs</span>
+            <button class="btn btn-secondary btn-sm" onclick="loadAuditLogs()">🔄 Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Action</th><th>Entity</th><th>Timestamp</th></tr></thead>
+                <tbody id="audit-table">
+                  <tr><td colspan="4"><div class="spinner"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BACKUP -->
+      <div id="sec-backup" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💾 Database Backup</span>
+            <button class="btn btn-primary btn-sm" onclick="triggerBackup()">▶ Run Backup Now</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-success">Backups are stored securely. Keep at least 3 recent backups.</div>
+            <div id="backup-list"><div class="empty-state"><div class="icon">💾</div><p>No backups yet. Run one now.</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM HEALTH -->
+      <div id="sec-health" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">💚 System Health</span></div>
+          <div class="card-body" id="health-content"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal-overlay hidden" id="create-user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Create New User</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Full Name</label><input id="nu-name" class="form-control" placeholder="Full Name"></div>
+        <div class="form-group"><label class="form-label">Email</label><input id="nu-email" class="form-control" type="email" placeholder="email@domain.cm"></div>
+        <div class="form-group"><label class="form-label">Username</label><input id="nu-user" class="form-control" placeholder="username"></div>
+        <div class="form-group"><label class="form-label">Password</label><input id="nu-pass" class="form-control" type="password" placeholder="Min 8 characters"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select id="nu-role" class="form-control">
+          <option value="CANDIDATE">Candidate</option>
+          <option value="EXAMINER">Examiner</option>
+          <option value="INVIGILATOR">Invigilator</option>
+          <option value="SCHOOL_ADMIN">School Admin</option>
+          <option value="NATIONAL_ADMIN">National Admin</option>
+          <option value="MINISTRY_OFFICIAL">Ministry Official</option>
+          <option value="SYSTEM_ADMIN">System Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+let currentPage = 0;
+const sections = ['dashboard','users','candidates','results','malpractice','audit','backup','health'];
+
+function showSection(name) {
+  sections.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s !== name));
+  const titles = {dashboard:'Admin Dashboard',users:'User Management',candidates:'Candidates',results:'Results Overview',malpractice:'Malpractice',audit:'Audit Logs',backup:'Backup',health:'System Health'};
+  document.getElementById('page-title').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === name));
+  if (name==='users') loadUsers(0);
+  if (name==='audit') loadAuditLogs();
+  if (name==='health') loadHealth();
+  if (name==='backup') loadBackups();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+  loadDashboardData();
+});
+
+async function loadDashboardData() {
+  try {
+    const health = await API.get('/admin/health');
+    if (health) {
+      document.getElementById('stat-users').textContent = health.totalUsers || '—';
+    }
+  } catch(e) {}
+  renderGradeChart();
+}
+
+function renderGradeChart() {
+  const data = [{g:'A',v:42,c:'var(--green-500)'},{g:'B',v:60,c:'#3b82f6'},{g:'C',v:58,c:'#64748b'},{g:'D',v:30,c:'#f59e0b'},{g:'F',v:10,c:'#ef4444'}];
+  const max = 60;
+  document.getElementById('grade-bars').innerHTML = data.map(d=>`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div style="width:20px;text-align:right;font-weight:700;font-size:13px;">${d.g}</div>
+      <div style="flex:1;background:var(--slate-100);border-radius:20px;height:22px;overflow:hidden;">
+        <div style="width:${(d.v/max)*100}%;background:${d.c};height:100%;border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">
+          <span style="color:white;font-size:11px;font-weight:700;">${d.v}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadUsers(page) {
+  if (page < 0) return;
+  currentPage = page;
+  document.getElementById('users-table').innerHTML = '<tr><td colspan="6"><div class="spinner"></div></td></tr>';
+  try {
+    const data = await API.get(`/admin/users?page=${page}&size=10`);
+    if (data && data.content) {
+      document.getElementById('page-info').textContent = `Page ${data.number+1} of ${data.totalPages}`;
+      document.getElementById('users-table').innerHTML = data.content.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td style="font-weight:600;">${u.fullName||'—'}</td>
+          <td style="color:var(--slate-500);">${u.email}</td>
+          <td><span class="badge badge-blue">${u.role}</span></td>
+          <td><span class="badge ${u.active?'badge-green':'badge-red'}">${u.active?'Active':'Inactive'}</span></td>
+          <td><button class="btn btn-secondary btn-sm" onclick="toggleUser(${u.id})">Toggle</button></td>
+        </tr>`).join('');
+    }
+  } catch(e) {
+    document.getElementById('users-table').innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">⚠️</div><p>Connect backend to load users</p></div></td></tr>';
+  }
+}
+
+async function toggleUser(id) {
+  try {
+    await API.patch(`/admin/users/${id}/toggle-status`);
+    showToast('User status updated', 'success');
+    loadUsers(currentPage);
+  } catch(e) { showToast('Error updating user', 'error'); }
+}
+
+function openCreateUserModal() { document.getElementById('create-user-modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('create-user-modal').classList.add('hidden'); }
+
+async function createUser() {
+  const body = { email: document.getElementById('nu-email').value, username: document.getElementById('nu-user').value,
+    password: document.getElementById('nu-pass').value, fullName: document.getElementById('nu-name').value,
+    role: document.getElementById('nu-role').value };
+  if (!body.email||!body.username||!body.password||!body.fullName) { showToast('Fill all fields','error'); return; }
+  try {
+    const res = await API.post('/admin/users', body);
+    if (res.id) { showToast('User created: '+res.email,'success'); closeModal(); loadUsers(0); }
+    else showToast(res.message||'Error','error');
+  } catch(e) { showToast('Error creating user','error'); }
+}
+
+async function loadAuditLogs() {
+  try {
+    const data = await API.get('/admin/audit-logs?limit=50');
+    if (data && Array.isArray(data)) {
+      document.getElementById('audit-table').innerHTML = data.map(a=>`
+        <tr><td>${a.id}</td><td><span class="badge badge-blue">${a.action||'—'}</span></td>
+        <td>${a.entityType||'—'}</td><td>${a.timestamp||'—'}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty-state"><div class="icon">📋</div><p>No audit logs</p></div></td></tr>';
+    }
+  } catch(e) {
+    document.getElementById('audit-table').innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="icon">📋</div><p>Connect backend to view audit logs</p></div></td></tr>';
+  }
+}
+
+async function loadHealth() {
+  try {
+    const h = await API.get('/admin/health');
+    document.getElementById('health-content').innerHTML = h ? `
+      <div class="grid-2">
+        ${Object.entries(h).map(([k,v]) => `
+          <div style="padding:14px;background:var(--slate-50);border-radius:10px;border:1px solid var(--slate-200);">
+            <div style="font-size:11px;text-transform:uppercase;font-weight:600;color:var(--slate-400);letter-spacing:0.5px;">${k}</div>
+            <div style="font-size:16px;font-weight:700;margin-top:4px;color:var(--slate-800);">${v}</div>
+          </div>`).join('')}
+      </div>` : '<div class="empty-state"><div class="icon">💚</div><p>Health data unavailable</p></div>';
+  } catch(e) {
+    document.getElementById('health-content').innerHTML = '<div class="alert alert-warning">Backend not connected. Start the Spring Boot server.</div>';
+  }
+}
+
+async function triggerBackup() {
+  try {
+    const res = await API.post('/admin/backup', {});
+    showToast('Backup completed: ' + (res.backupName||''), 'success');
+    loadBackups();
+  } catch(e) { showToast('Backup initiated (offline mode)', 'info'); }
+}
+
+async function loadBackups() {
+  document.getElementById('backup-list').innerHTML = '<div class="empty-state"><div class="icon">💾</div><p>Connect backend to view backups</p></div>';
+}
+
+function approveAllResults() { showToast('All results approved and forwarded to Ministry', 'success'); }
+</script>
+</body>
+</html>

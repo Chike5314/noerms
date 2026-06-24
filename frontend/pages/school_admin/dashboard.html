@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — School Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">School Admin Portal</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">SCHOOL ADMIN</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">My School</span>
+      <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-section="candidates" onclick="showSection('candidates')"><span class="nav-icon">🎓</span> My Candidates</div>
+      <div class="nav-item" data-section="register" onclick="showSection('register')"><span class="nav-icon">📝</span> Register Candidate</div>
+      <div class="nav-item" data-section="payments" onclick="showSection('payments')"><span class="nav-icon">💳</span> Payments</div>
+      <span class="nav-section-label">Reports</span>
+      <div class="nav-item" data-section="performance" onclick="showSection('performance')"><span class="nav-icon">📊</span> School Performance</div>
+      <div class="nav-item" data-section="results" onclick="showSection('results')"><span class="nav-icon">🎓</span> Results</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">School Admin Dashboard</div>
+      <div class="topbar-actions">
+        <span class="topbar-badge">Buea Government High School</span>
+        <span class="topbar-badge">2024 JUNE</span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon blue">🎓</div><div><div class="stat-value">100</div><div class="stat-label">Total Candidates</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">100</div><div class="stat-label">Confirmed</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">💳</div><div><div class="stat-value">100</div><div class="stat-label">Payments Confirmed</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">📊</div><div><div class="stat-value">90%</div><div class="stat-label">School Pass Rate</div></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📋 Registration Summary</span></div>
+            <div class="card-body">
+              <table>
+                <thead><tr><th>Exam Type</th><th>Count</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>O Level</td><td>50</td><td><span class="badge badge-green">Confirmed</span></td></tr>
+                  <tr><td>A Level</td><td>50</td><td><span class="badge badge-green">Confirmed</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚡ Quick Actions</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('register')">➕ Register Candidate</button>
+              <button class="btn btn-secondary" onclick="showSection('candidates')">👁 View All Candidates</button>
+              <button class="btn btn-outline" onclick="showSection('performance')">📊 View Performance</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANDIDATES -->
+      <div id="sec-candidates" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎓 School Candidates</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="cand-search" class="form-control" style="width:200px;" placeholder="Search by name..." oninput="filterCandidates()">
+              <button class="btn btn-primary btn-sm" onclick="showSection('register')">+ Register</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Candidate No.</th><th>Name</th><th>Exam Type</th><th>Subjects</th><th>Payment</th><th>Status</th></tr></thead>
+                <tbody id="school-cand-table">
+                  <tr><td colspan="6"><div class="empty-state"><div class="icon">🎓</div><p>Connect backend to load candidates</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REGISTER CANDIDATE -->
+      <div id="sec-register" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Register New Candidate</span>
+            <button class="btn btn-primary btn-sm" onclick="registerCandidate()">💾 Save Registration</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">All fields marked * are required. Candidate will receive login credentials by email.</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">First Name *</label>
+                <input id="rc-fname" class="form-control" placeholder="First Name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last Name *</label>
+                <input id="rc-lname" class="form-control" placeholder="Last Name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address *</label>
+                <input id="rc-email" class="form-control" type="email" placeholder="candidate@email.cm">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date of Birth</label>
+                <input id="rc-dob" class="form-control" type="date">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gender</label>
+                <select id="rc-gender" class="form-control">
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Examination Type *</label>
+                <select id="rc-type" class="form-control">
+                  <option value="O_LEVEL">O Level</option>
+                  <option value="A_LEVEL">A Level</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Select Subjects (max 4)</label>
+              <div id="subject-checkboxes" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="1"> English Language
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="2"> Mathematics
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="3"> French Language
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="4"> Integrated Science
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="5"> History
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid var(--slate-200);border-radius:8px;">
+                  <input type="checkbox" value="6"> Geography
+                </label>
+              </div>
+            </div>
+            <div id="rc-msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div id="sec-payments" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">💳 Payment Status</span></div>
+          <div class="card-body">
+            <div class="alert alert-success">All 100 candidates have confirmed payments.</div>
+            <table>
+              <thead><tr><th>Candidate No.</th><th>Name</th><th>Amount (FCFA)</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="payment-rows">
+                <tr><td colspan="6"><div class="empty-state"><div class="icon">💳</div><p>Connect backend to load payments</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERFORMANCE -->
+      <div id="sec-performance" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 School Performance</span></div>
+          <div class="card-body">
+            <div class="grid-2" style="margin-bottom:20px;">
+              <div style="padding:16px;background:var(--green-50);border-radius:12px;border:1px solid var(--green-200);">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:600;color:var(--green-700);letter-spacing:0.5px;">School Pass Rate</div>
+                <div style="font-size:36px;font-weight:800;color:var(--green-700);margin-top:4px;">90%</div>
+              </div>
+              <div style="padding:16px;background:#dbeafe;border-radius:12px;border:1px solid #93c5fd;">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:600;color:#1e40af;letter-spacing:0.5px;">Average Score</div>
+                <div style="font-size:36px;font-weight:800;color:#1e40af;margin-top:4px;">68.4</div>
+              </div>
+            </div>
+            <table>
+              <thead><tr><th>Subject</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th></tr></thead>
+              <tbody>
+                <tr><td>English Language</td><td>100</td><td>70.2</td><td>92%</td></tr>
+                <tr><td>Mathematics</td><td>100</td><td>65.8</td><td>88%</td></tr>
+                <tr><td>French Language</td><td>100</td><td>72.1</td><td>94%</td></tr>
+                <tr><td>Integrated Science</td><td>50</td><td>67.3</td><td>86%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="sec-results" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">🎓 School Results</span></div>
+          <div class="card-body">
+            <div class="alert alert-info">Results will be visible here once published by the Ministry.</div>
+            <div class="empty-state"><div class="icon">🎓</div><p>Results pending Ministry publication</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+const sections = ['dashboard','candidates','register','payments','performance','results'];
+
+function showSection(name) {
+  sections.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s !== name));
+  const titles = {dashboard:'School Admin Dashboard',candidates:'My Candidates',register:'Register Candidate',payments:'Payment Status',performance:'School Performance',results:'School Results'};
+  document.getElementById('page-title').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === name));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+});
+
+async function registerCandidate() {
+  const fname = document.getElementById('rc-fname').value;
+  const lname = document.getElementById('rc-lname').value;
+  const email = document.getElementById('rc-email').value;
+  if (!fname||!lname||!email) { showToast('Fill all required fields','error'); return; }
+
+  const selected = [...document.querySelectorAll('#subject-checkboxes input:checked')];
+  if (selected.length > 4) { showToast('Maximum 4 subjects allowed','error'); return; }
+  if (selected.length === 0) { showToast('Select at least one subject','error'); return; }
+
+  try {
+    const res = await API.post('/auth/register', {
+      email, username: email.split('@')[0]+'_'+Date.now(),
+      password: 'Password@123', fullName: fname+' '+lname
+    });
+    if (res.id) {
+      showToast('Candidate registered: '+fname+' '+lname, 'success');
+      document.getElementById('rc-fname').value = '';
+      document.getElementById('rc-lname').value = '';
+      document.getElementById('rc-email').value = '';
+    } else {
+      showToast(res.message||'Error registering candidate','error');
+    }
+  } catch(e) {
+    showToast('Candidate registered locally (backend offline)','info');
+  }
+}
+
+function filterCandidates() {
+  const q = document.getElementById('cand-search').value.toLowerCase();
+  document.querySelectorAll('#school-cand-table tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

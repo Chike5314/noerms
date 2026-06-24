@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — National Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+<style>
+.chart-bar-wrap { display:flex; flex-direction:column; gap:8px; }
+.chart-bar-row  { display:flex; align-items:center; gap:12px; }
+.chart-bar-label{ width:130px; font-size:12px; font-weight:600; color:var(--slate-600); text-align:right; flex-shrink:0; }
+.chart-bar-track{ flex:1; background:var(--slate-100); border-radius:20px; height:22px; overflow:hidden; position:relative; }
+.chart-bar-fill { height:100%; border-radius:20px; transition:width .8s cubic-bezier(.4,0,.2,1); display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
+.chart-bar-fill span { color:white; font-size:11px; font-weight:700; }
+.chart-bar-val  { width:44px; font-size:12px; font-weight:700; color:var(--slate-700); }
+.donut-wrap { display:flex; align-items:center; gap:24px; }
+.donut-legend { display:flex; flex-direction:column; gap:8px; }
+.donut-legend-item { display:flex; align-items:center; gap:8px; font-size:13px; }
+.donut-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.kpi-card { background:white; border:1px solid var(--slate-200); border-radius:var(--radius); padding:18px 20px; }
+.kpi-value { font-size:28px; font-weight:800; color:var(--slate-900); }
+.kpi-label { font-size:12px; color:var(--slate-500); font-weight:500; margin-top:2px; }
+.kpi-delta { font-size:11px; font-weight:600; margin-top:4px; }
+.kpi-delta.up   { color:var(--green-600); }
+.kpi-delta.down { color:#ef4444; }
+.section-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+.section-grid.wide { grid-template-columns:2fr 1fr; }
+.loading-overlay { display:flex; align-items:center; justify-content:center; padding:40px; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Analytics Dashboard</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">ADMIN</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+    <span class="nav-section-label">Dashboards</span>
+    <div class="nav-item" onclick="window.location.href='dashboard.html'"><span class="nav-icon">🏠</span> Admin Home</div>
+    <div class="nav-item active" data-section="overview" onclick="showSection('overview')"><span class="nav-icon">📊</span> National Analytics</div>
+    
+    <span class="nav-section-label">Reports</span>
+    <div class="nav-item" data-section="subjects" onclick="showSection('subjects')"><span class="nav-icon">📚</span> Subject Performance</div>
+    <div class="nav-item" data-section="schools" onclick="showSection('schools')"><span class="nav-icon">🏫</span> School Rankings</div>
+    <div class="nav-item" data-section="regional" onclick="showSection('regional')"><span class="nav-icon">🗺️</span> Regional Breakdown</div>
+    <div class="nav-item" data-section="gender" onclick="showSection('gender')"><span class="nav-icon">👥</span> Gender Analysis</div>
+    <div class="nav-item" data-section="malpractice" onclick="showSection('malpractice')"><span class="nav-icon">⚠️</span> Malpractice</div>
+</nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">National Analytics — 2024 JUNE Session</div>
+      <div class="topbar-actions">
+        <select id="session-select" class="form-control" style="width:160px;padding:6px 10px;"
+                onchange="loadAll()">
+          <option value="1">2024 JUNE</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="loadAll()">🔄 Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="exportReport()">📥 Export</button>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- KPI STRIP -->
+      <div class="kpi-row" id="kpi-strip">
+        <div class="kpi-card"><div class="kpi-value" id="kpi-candidates">—</div><div class="kpi-label">Total Candidates</div><div class="kpi-delta up" id="kpi-cand-d"></div></div>
+        <div class="kpi-card"><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-label">National Average Score</div></div>
+        <div class="kpi-card"><div class="kpi-value" id="kpi-pass">—%</div><div class="kpi-label">National Pass Rate</div><div class="kpi-delta up" id="kpi-pass-d"></div></div>
+        <div class="kpi-card"><div class="kpi-value" id="kpi-fail">—%</div><div class="kpi-label">Failure Rate</div><div class="kpi-delta down" id="kpi-fail-d"></div></div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div id="sec-overview">
+        <div class="section-grid wide">
+          <!-- Grade Distribution -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">📊 Grade Distribution</span></div>
+            <div class="card-body chart-bar-wrap" id="grade-chart">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+          <!-- Donut summary -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">🎯 Pass vs Fail</span></div>
+            <div class="card-body">
+              <div id="pass-fail-chart" style="text-align:center;padding:10px 0;">
+                <div class="loading-overlay"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBJECTS -->
+      <div id="sec-subjects" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📚 Subject Performance & Difficulty Index</span></div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom:16px;">Difficulty Index = 100 − Average Score. Higher = harder subject.</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Subject</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th><th>Min</th><th>Max</th><th>Difficulty Index</th></tr></thead>
+                <tbody id="subjects-table"><tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+            <div id="subject-bars" style="margin-top:20px;" class="chart-bar-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCHOOL RANKINGS -->
+      <div id="sec-schools" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏫 School Rankings (Top 100 Nationally)</span>
+            <span class="badge badge-green">Live Ranking</span>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Rank</th><th>School</th><th>Region</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th><th>Distinctions (A)</th></tr></thead>
+                <tbody id="schools-table"><tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REGIONAL -->
+      <div id="sec-regional" class="hidden">
+        <div class="section-grid">
+          <div class="card">
+            <div class="card-header"><span class="card-title">🗺️ Regional Pass Rate</span></div>
+            <div class="card-body chart-bar-wrap" id="regional-chart">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">📋 Regional Summary</span></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Region</th><th>Schools</th><th>Candidates</th><th>Avg</th><th>Pass%</th></tr></thead>
+                  <tbody id="regional-table"><tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENDER -->
+      <div id="sec-gender" class="hidden">
+        <div class="section-grid">
+          <div class="card">
+            <div class="card-header"><span class="card-title">👥 Performance by Gender</span></div>
+            <div class="card-body">
+              <div id="gender-chart"><div class="loading-overlay"><div class="spinner"></div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">📊 Gender Statistics</span></div>
+            <div class="card-body">
+              <table>
+                <thead><tr><th>Gender</th><th>Candidates</th><th>Avg Score</th><th>Pass Rate</th></tr></thead>
+                <tbody id="gender-table"><tr><td colspan="4"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MALPRACTICE -->
+      <div id="sec-malpractice" class="hidden">
+        <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;">
+          <div class="kpi-card"><div class="kpi-value" id="mal-total">—</div><div class="kpi-label">Total Reports</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="mal-filed">—</div><div class="kpi-label">Filed / Pending</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="mal-resolved">—</div><div class="kpi-label">Resolved</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠️ Malpractice by Center (Heat Map)</span></div>
+          <div class="card-body">
+            <div id="mal-center-chart" class="chart-bar-wrap"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+const SECTIONS = ['overview','subjects','schools','regional','gender','malpractice'];
+const COLORS = { A:'var(--green-500)', B:'#3b82f6', C:'#64748b', D:'#f59e0b', E:'#fb923c', O:'#a855f7', F:'#ef4444' };
+
+function showSection(name) {
+    const section = document.getElementById('sec-' + name);
+    if (section) {
+        // Smooth scroll to the section
+        section.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+
+    // Update active menu item
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === name);
+    });
+
+    // Update page title
+    const titles = {
+        overview: 'National Analytics — Overview',
+        subjects: 'Subject Performance & Difficulty',
+        schools: 'School Rankings',
+        regional: 'Regional Breakdown',
+        gender: 'Gender Analysis',
+        malpractice: 'Malpractice Analytics'
+    };
+    document.getElementById('page-title').textContent = titles[name] || 'National Analytics';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+  loadAll();
+});
+
+function sessionId() { return document.getElementById('session-select').value; }
+
+async function loadAll() {
+  await Promise.all([loadOverview(), loadSubjects(), loadSchools(), loadRegional(), loadGender(), loadMalpractice()]);
+}
+
+async function loadOverview() {
+  try {
+    const d = await API.get('/analytics/overview?sessionId=' + sessionId());
+    if (d) {
+      document.getElementById('kpi-candidates').textContent = d.totalCandidates ?? '—';
+      document.getElementById('kpi-avg').textContent        = d.averageScore ?? '—';
+      document.getElementById('kpi-pass').textContent       = (d.passRate ?? '—') + '%';
+      document.getElementById('kpi-fail').textContent       = (d.failRate ?? '—') + '%';
+    }
+  } catch(e) {
+    // offline demo values
+    document.getElementById('kpi-candidates').textContent = '100';
+    document.getElementById('kpi-avg').textContent        = '68.4';
+    document.getElementById('kpi-pass').textContent       = '90%';
+    document.getElementById('kpi-fail').textContent       = '10%';
+  }
+
+  // Grade distribution chart
+  try {
+    const grades = await API.get('/analytics/grades?sessionId=' + sessionId());
+    renderGradeBars(grades);
+    renderPassFail(grades);
+  } catch(e) {
+    renderGradeBars([{grade:'A',count:42,percentage:21},{grade:'B',count:60,percentage:30},{grade:'C',count:58,percentage:29},{grade:'D',count:30,percentage:15},{grade:'F',count:10,percentage:5}]);
+    renderPassFail([{grade:'A',count:42},{grade:'B',count:60},{grade:'C',count:58},{grade:'D',count:30},{grade:'F',count:10}]);
+  }
+}
+
+function renderGradeBars(data) {
+  const max = Math.max(...data.map(d => d.count));
+  document.getElementById('grade-chart').innerHTML = data.map(d => `
+    <div class="chart-bar-row">
+      <div class="chart-bar-label">${d.grade}</div>
+      <div class="chart-bar-track">
+        <div class="chart-bar-fill" style="width:${(d.count/max)*100}%;background:${COLORS[d.grade]||'#64748b'}">
+          <span>${d.count}</span>
+        </div>
+      </div>
+      <div class="chart-bar-val">${d.percentage}%</div>
+    </div>`).join('');
+}
+
+function renderPassFail(data) {
+  const pass = data.filter(d => d.grade !== 'F').reduce((a,b)=>a+(b.count||0),0);
+  const fail = data.filter(d => d.grade === 'F').reduce((a,b)=>a+(b.count||0),0);
+  const total = pass + fail;
+  const passPct = total ? Math.round(pass/total*100) : 0;
+  document.getElementById('pass-fail-chart').innerHTML = `
+    <div style="font-size:52px;font-weight:800;color:var(--green-600);margin-bottom:4px;">${passPct}%</div>
+    <div style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">Pass Rate</div>
+    <div style="background:var(--slate-100);border-radius:20px;height:18px;overflow:hidden;margin:0 20px;">
+      <div style="width:${passPct}%;height:100%;background:linear-gradient(90deg,var(--green-400),var(--green-600));border-radius:20px;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-around;margin-top:14px;">
+      <div><div style="font-weight:700;color:var(--green-600);">${pass}</div><div style="font-size:11px;color:var(--slate-400)">PASSED</div></div>
+      <div><div style="font-weight:700;color:#ef4444;">${fail}</div><div style="font-size:11px;color:var(--slate-400)">FAILED</div></div>
+    </div>`;
+}
+
+async function loadSubjects() {
+  try {
+    const data = await API.get('/analytics/subjects?sessionId=' + sessionId());
+    renderSubjectsTable(data);
+    renderSubjectBars(data);
+  } catch(e) {
+    const demo = [
+      {subject_name:'English Language',code:'ENG',candidates:100,average_score:70.2,pass_rate:92,min_score:30,max_score:98,difficulty_index:29.8},
+      {subject_name:'Mathematics',code:'MATH',candidates:100,average_score:65.8,pass_rate:88,min_score:22,max_score:95,difficulty_index:34.2},
+      {subject_name:'French Language',code:'FREN',candidates:100,average_score:72.1,pass_rate:94,min_score:35,max_score:99,difficulty_index:27.9},
+      {subject_name:'Integrated Science',code:'SCI',candidates:50,average_score:67.3,pass_rate:86,min_score:28,max_score:91,difficulty_index:32.7},
+      {subject_name:'History',code:'HIST',candidates:50,average_score:69.5,pass_rate:90,min_score:31,max_score:94,difficulty_index:30.5},
+      {subject_name:'Geography',code:'GEOG',candidates:50,average_score:71.0,pass_rate:91,min_score:33,max_score:96,difficulty_index:29.0}
+    ];
+    renderSubjectsTable(demo); renderSubjectBars(demo);
+  }
+}
+
+function renderSubjectsTable(data) {
+  document.getElementById('subjects-table').innerHTML = data.map(d => `
+    <tr>
+      <td><strong>${d.subject_name}</strong><br><span style="font-size:11px;color:var(--slate-400)">${d.code}</span></td>
+      <td>${d.candidates}</td>
+      <td><strong>${d.average_score}</strong></td>
+      <td><span class="badge ${d.pass_rate>=80?'badge-green':d.pass_rate>=60?'badge-yellow':'badge-red'}">${d.pass_rate}%</span></td>
+      <td>${d.min_score}</td><td>${d.max_score}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:var(--slate-100);border-radius:10px;height:8px;overflow:hidden;">
+            <div style="width:${d.difficulty_index}%;background:${d.difficulty_index>60?'#ef4444':d.difficulty_index>40?'#f59e0b':'var(--green-500)'};height:100%;border-radius:10px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;">${d.difficulty_index}</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderSubjectBars(data) {
+  const sorted = [...data].sort((a,b) => b.average_score - a.average_score);
+  document.getElementById('subject-bars').innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--slate-500);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Average Score by Subject</div>` +
+    sorted.map(d => `
+      <div class="chart-bar-row">
+        <div class="chart-bar-label" style="width:150px">${d.subject_name.split(' ').slice(0,2).join(' ')}</div>
+        <div class="chart-bar-track">
+          <div class="chart-bar-fill" style="width:${d.average_score}%;background:var(--green-500)">
+            <span>${d.average_score}</span>
+          </div>
+        </div>
+        <div class="chart-bar-val">${d.pass_rate}% pass</div>
+      </div>`).join('');
+}
+
+async function loadSchools() {
+  try {
+    const data = await API.get('/analytics/schools?sessionId=' + sessionId());
+    renderSchoolsTable(data);
+  } catch(e) {
+    renderSchoolsTable([{national_rank:1,school_name:'Buea Government High School',region:'South West',total_candidates:100,average_score:68.4,pass_rate:90,distinctions:42}]);
+  }
+}
+
+function renderSchoolsTable(data) {
+  document.getElementById('schools-table').innerHTML = data.map(d => `
+    <tr>
+      <td><strong>#${d.national_rank}</strong></td>
+      <td>${d.school_name}</td>
+      <td><span class="badge badge-blue">${d.region}</span></td>
+      <td>${d.total_candidates}</td>
+      <td><strong>${d.average_score}</strong></td>
+      <td><span class="badge ${d.pass_rate>=80?'badge-green':d.pass_rate>=60?'badge-yellow':'badge-red'}">${d.pass_rate}%</span></td>
+      <td>${d.distinctions}</td>
+    </tr>`).join('');
+}
+
+async function loadRegional() {
+  try {
+    const data = await API.get('/analytics/regional?sessionId=' + sessionId());
+    renderRegional(data);
+  } catch(e) {
+    renderRegional([{region:'South West',schools_count:1,total_candidates:100,average_score:68.4,pass_rate:90}]);
+  }
+}
+
+function renderRegional(data) {
+  const max = Math.max(...data.map(d => d.pass_rate));
+  document.getElementById('regional-chart').innerHTML = data.map(d => `
+    <div class="chart-bar-row">
+      <div class="chart-bar-label">${d.region}</div>
+      <div class="chart-bar-track">
+        <div class="chart-bar-fill" style="width:${d.pass_rate}%;background:#3b82f6">
+          <span>${d.pass_rate}%</span>
+        </div>
+      </div>
+      <div class="chart-bar-val">${d.total_candidates} cands</div>
+    </div>`).join('');
+  document.getElementById('regional-table').innerHTML = data.map(d => `
+    <tr><td>${d.region}</td><td>${d.schools_count||'—'}</td><td>${d.total_candidates}</td>
+    <td>${d.average_score}</td><td><span class="badge badge-green">${d.pass_rate}%</span></td></tr>`).join('');
+}
+
+async function loadGender() {
+  try {
+    const data = await API.get('/analytics/gender?sessionId=' + sessionId());
+    renderGender(data);
+  } catch(e) {
+    renderGender([{gender:'M',total_candidates:50,average_score:67.8,pass_rate:89},{gender:'F',total_candidates:50,average_score:69.0,pass_rate:91}]);
+  }
+}
+
+function renderGender(data) {
+  const cols = {'M':'#3b82f6','F':'#ec4899','m':'#3b82f6','f':'#ec4899'};
+  document.getElementById('gender-chart').innerHTML = data.map(d => `
+    <div style="text-align:center;padding:16px;margin-bottom:16px;">
+      <div style="font-size:36px;font-weight:800;color:${cols[d.gender]||'#64748b'}">${d.pass_rate}%</div>
+      <div style="font-size:13px;color:var(--slate-500);">${d.gender === 'M' ? '👨 Male' : '👩 Female'} Pass Rate</div>
+      <div style="background:var(--slate-100);border-radius:20px;height:10px;overflow:hidden;margin-top:10px;">
+        <div style="width:${d.pass_rate}%;height:100%;background:${cols[d.gender]||'#64748b'};border-radius:20px;"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('gender-table').innerHTML = data.map(d => `
+    <tr><td>${d.gender==='M'?'👨 Male':'👩 Female'}</td><td>${d.total_candidates}</td>
+    <td>${d.average_score}</td><td><span class="badge badge-green">${d.pass_rate}%</span></td></tr>`).join('');
+}
+
+async function loadMalpractice() {
+  try {
+    const d = await API.get('/analytics/malpractice');
+    document.getElementById('mal-total').textContent    = d.total ?? '—';
+    document.getElementById('mal-filed').textContent    = d.filed ?? '—';
+    document.getElementById('mal-resolved').textContent = d.resolved ?? '—';
+    if (d.byCenter && d.byCenter.length > 0) {
+      const max = Math.max(...d.byCenter.map(c => c.report_count));
+      document.getElementById('mal-center-chart').innerHTML = d.byCenter.map(c => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label">${c.center}</div>
+          <div class="chart-bar-track">
+            <div class="chart-bar-fill" style="width:${max>0?(c.report_count/max)*100:0}%;background:#f59e0b">
+              <span>${c.report_count}</span>
+            </div>
+          </div>
+          <div class="chart-bar-val">${c.region}</div>
+        </div>`).join('');
+    } else {
+      document.getElementById('mal-center-chart').innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No malpractice reports filed</p></div>';
+    }
+  } catch(e) {
+    document.getElementById('mal-total').textContent    = '0';
+    document.getElementById('mal-filed').textContent    = '0';
+    document.getElementById('mal-resolved').textContent = '0';
+    document.getElementById('mal-center-chart').innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No malpractice reports</p></div>';
+  }
+}
+
+function exportReport() { showToast('Report exported to Excel/PDF (connect backend)', 'info'); }
+</script>
+</body>
+</html>

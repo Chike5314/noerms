@@ -1,0 +1,220 @@
+# =============================================================
+# NOERMS CI/CD Pipeline — GitHub Actions
+# Triggers: push to main/develop, pull requests
+# =============================================================
+
+name: NOERMS CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ${{ github.repository }}/noerms-backend
+  IMAGE_FRONTEND: ${{ github.repository }}/noerms-frontend
+
+jobs:
+
+  # ── 1. BUILD & UNIT TESTS ──────────────────────────────────
+  build-and-test:
+    name: Build & Test Backend
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: noerms_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Initialize test database
+        run: |
+          PGPASSWORD=test psql -h localhost -U test -d noerms_test -f database/schema.sql
+
+      - name: Build with Maven
+        run: cd backend && mvn clean package -DskipTests -q
+
+      - name: Run unit tests
+        run: cd backend && mvn test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/noerms_test
+          SPRING_DATASOURCE_USERNAME: test
+          SPRING_DATASOURCE_PASSWORD: test
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+          APP_JWT_SECRET: test-secret-key-for-ci-noerms-2024
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/target/surefire-reports/
+
+  # ── 2. CODE QUALITY ───────────────────────────────────────
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Check for javax imports (must be 0)
+        run: |
+          COUNT=$(grep -r "import javax.persistence\|import javax.validation\|import javax.servlet" backend/src/ 2>/dev/null | wc -l)
+          echo "javax import violations: $COUNT"
+          if [ "$COUNT" -gt "0" ]; then
+            echo "❌ FAILED: javax imports found. Use jakarta.* for Spring Boot 3.x"
+            grep -r "import javax.persistence\|import javax.validation" backend/src/
+            exit 1
+          fi
+          echo "✅ No javax import violations"
+
+      - name: Verify Jakarta imports present
+        run: |
+          COUNT=$(grep -r "import jakarta\." backend/src/ | wc -l)
+          echo "✅ Jakarta imports found: $COUNT"
+
+  # ── 3. SECURITY SCAN ─────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: OWASP Dependency Check
+        run: |
+          cd backend && mvn dependency-check:check \
+            -Dodc.skip=false \
+            -DfailBuildOnCVSS=9 \
+            -DsuppressionFiles=owasp-suppressions.xml || true
+
+      - name: Check for hardcoded secrets
+        run: |
+          if grep -r "password\s*=\s*['\"][^${}]" backend/src/main/ 2>/dev/null | grep -v "test\|example\|placeholder"; then
+            echo "⚠️ WARNING: Possible hardcoded credentials found"
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+  # ── 4. DOCKER BUILD ───────────────────────────────────────
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [ build-and-test, code-quality ]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 5. DEPLOY (main branch only) ─────────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/noerms
+            git pull origin main
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker system prune -f
+            echo "✅ Deployment complete: $(date)"

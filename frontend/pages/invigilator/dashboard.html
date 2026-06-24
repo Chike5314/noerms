@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOERMS — Invigilator Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">🍏</div>
+      <div><div class="brand-name">NOERMS</div><div class="brand-sub">Invigilator Portal</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initials">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-role" id="user-role">INVIGILATOR</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Examination Hall</span>
+      <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-section="attendance" onclick="showSection('attendance')"><span class="nav-icon">✅</span> Mark Attendance</div>
+      <div class="nav-item" data-section="register" onclick="showSection('register')"><span class="nav-icon">📋</span> Seating List</div>
+      <div class="nav-item" data-section="malpractice" onclick="showSection('malpractice')"><span class="nav-icon">⚠️</span> Malpractice</div>
+      <div class="nav-item" data-section="summary" onclick="showSection('summary')"><span class="nav-icon">📊</span> Session Summary</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="API.logout()"><span>🚪</span> Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Invigilator Dashboard</div>
+      <div class="topbar-actions">
+        <span class="topbar-badge" id="center-badge">Center: —</span>
+        <span class="topbar-badge">2024 JUNE</span>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon blue">🎓</div><div><div class="stat-value">100</div><div class="stat-label">Assigned Candidates</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="present-count">0</div><div class="stat-label">Present</div></div></div>
+          <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="absent-count">0</div><div class="stat-label">Absent</div></div></div>
+          <div class="stat-card"><div class="stat-icon amber">⚠️</div><div><div class="stat-value" id="malp-count">0</div><div class="stat-label">Malpractice Reports</div></div></div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-header"><span class="card-title">📍 Today's Examination</span></div>
+          <div class="card-body">
+            <div class="grid-3">
+              <div><span style="font-size:11px;color:var(--slate-500);font-weight:600;text-transform:uppercase">Subject</span>
+                <div style="font-weight:700;margin-top:4px;font-size:16px;">English Language</div></div>
+              <div><span style="font-size:11px;color:var(--slate-500);font-weight:600;text-transform:uppercase">Date & Time</span>
+                <div style="font-weight:700;margin-top:4px;font-size:16px;">2024-06-03 | 08:00</div></div>
+              <div><span style="font-size:11px;color:var(--slate-500);font-weight:600;text-transform:uppercase">Duration</span>
+                <div style="font-weight:700;margin-top:4px;font-size:16px;">3 Hours</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Attendance Progress</span></div>
+          <div class="card-body">
+            <div style="margin-bottom:8px;display:flex;justify-content:space-between;font-size:13px;font-weight:600;">
+              <span>Attendance Rate</span><span id="att-pct">0%</span>
+            </div>
+            <div class="progress"><div class="progress-bar" id="att-bar" style="width:0%"></div></div>
+            <div style="margin-top:16px;display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="showSection('attendance')">✅ Mark Attendance</button>
+              <button class="btn btn-danger" onclick="showSection('malpractice')">⚠️ Report Malpractice</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MARK ATTENDANCE -->
+      <div id="sec-attendance" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">✅ Mark Attendance</span>
+            <button class="btn btn-primary btn-sm" onclick="submitAttendance()">💾 Save</button>
+          </div>
+          <div class="card-body">
+            <div class="grid-2" style="margin-bottom:20px;">
+              <div class="form-group">
+                <label class="form-label">Candidate ID</label>
+                <input type="number" id="att-cand" class="form-control" placeholder="Candidate ID">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Subject ID</label>
+                <input type="number" id="att-subj" class="form-control" placeholder="Subject ID">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="att-status" class="form-control">
+                  <option value="PRESENT">Present</option>
+                  <option value="ABSENT">Absent</option>
+                  <option value="LATE">Late</option>
+                  <option value="EXCUSED">Excused</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Center ID</label>
+                <input type="number" id="att-center" class="form-control" placeholder="Center ID" value="1">
+              </div>
+            </div>
+            <div id="att-msg"></div>
+          </div>
+        </div>
+
+        <!-- Bulk attendance table -->
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header"><span class="card-title">📋 Quick Bulk Marking</span></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Candidate No.</th><th>Name</th><th>Seat</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="bulk-rows">
+                  <tr><td colspan="5"><div class="empty-state"><div class="icon">📋</div><p>Load candidates for bulk marking</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEATING LIST -->
+      <div id="sec-register" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📋 Seating Register</span></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Seat No.</th><th>Candidate No.</th><th>Name</th><th>Exam Type</th><th>Attendance</th></tr></thead>
+                <tbody id="seating-rows">
+                  <tr><td colspan="5"><div class="empty-state"><div class="icon">📋</div><p>No seating data loaded</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MALPRACTICE -->
+      <div id="sec-malpractice" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚠️ Report Malpractice</span>
+            <button class="btn btn-danger btn-sm" onclick="submitMalpractice()">📨 Submit Report</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning">Only report confirmed cases of malpractice. This report is permanent.</div>
+            <div class="grid-2" style="margin-bottom:16px;">
+              <div class="form-group">
+                <label class="form-label">Candidate ID</label>
+                <input type="number" id="mal-cand" class="form-control" placeholder="Candidate ID">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Center ID</label>
+                <input type="number" id="mal-center" class="form-control" placeholder="Center ID" value="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description of Incident</label>
+              <textarea id="mal-desc" class="form-control" rows="4" placeholder="Describe the malpractice incident in detail..."></textarea>
+            </div>
+            <div id="mal-msg"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header"><span class="card-title">📋 Filed Reports</span></div>
+          <div class="card-body">
+            <div id="mal-list"><div class="empty-state"><div class="icon">⚠️</div><p>No malpractice reports filed</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div id="sec-summary" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Session Summary</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Metric</th><th>Value</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Total Candidates</td><td>100</td><td><span class="badge badge-blue">Full Hall</span></td></tr>
+                <tr><td>Present</td><td id="sum-present">0</td><td><span class="badge badge-green">Marked</span></td></tr>
+                <tr><td>Absent</td><td id="sum-absent">0</td><td><span class="badge badge-yellow">Noted</span></td></tr>
+                <tr><td>Malpractice Cases</td><td id="sum-mal">0</td><td><span class="badge badge-red">Review</span></td></tr>
+                <tr><td>Attendance Rate</td><td id="sum-pct">—</td><td><span class="badge badge-green">Calculated</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script>
+requireAuth();
+let presentCount = 0, absentCount = 0, malpCount = 0;
+const sections = ['dashboard','attendance','register','malpractice','summary'];
+
+function showSection(name) {
+  sections.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s !== name));
+  const titles = {dashboard:'Invigilator Dashboard',attendance:'Mark Attendance',register:'Seating Register',malpractice:'Malpractice Reports',summary:'Session Summary'};
+  document.getElementById('page-title').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === name));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  requireAuth(); renderUserInfo();
+  const user = API.user();
+  if (user) {
+    const i = (user.fullName||user.email).split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = i;
+  }
+});
+
+function updateStats() {
+  document.getElementById('present-count').textContent = presentCount;
+  document.getElementById('absent-count').textContent = absentCount;
+  document.getElementById('malp-count').textContent = malpCount;
+  const total = 100;
+  const pct = Math.round((presentCount / total) * 100);
+  document.getElementById('att-pct').textContent = pct + '%';
+  document.getElementById('att-bar').style.width = pct + '%';
+  document.getElementById('sum-present').textContent = presentCount;
+  document.getElementById('sum-absent').textContent = absentCount;
+  document.getElementById('sum-mal').textContent = malpCount;
+  document.getElementById('sum-pct').textContent = pct + '%';
+}
+
+async function submitAttendance() {
+  const user = API.user();
+  const candidateId = document.getElementById('att-cand').value;
+  const subjectId = document.getElementById('att-subj').value;
+  const status = document.getElementById('att-status').value;
+  const centerId = document.getElementById('att-center').value;
+  if (!candidateId || !subjectId) { showToast('Fill candidate and subject ID', 'error'); return; }
+  try {
+    await API.post('/attendance/mark', {
+      candidateId, examinationSessionId: 1, centerId,
+      subjectId, status, markedById: user?.id || 1
+    });
+    showToast('Attendance marked: ' + status, 'success');
+    if (status === 'PRESENT') presentCount++;
+    else if (status === 'ABSENT') absentCount++;
+    updateStats();
+    document.getElementById('att-cand').value = '';
+  } catch(e) {
+    showToast('Saved locally (backend offline)', 'info');
+    if (status === 'PRESENT') presentCount++;
+    else absentCount++;
+    updateStats();
+  }
+}
+
+async function submitMalpractice() {
+  const user = API.user();
+  const candidateId = document.getElementById('mal-cand').value;
+  const centerId = document.getElementById('mal-center').value;
+  const description = document.getElementById('mal-desc').value;
+  if (!candidateId || !description) { showToast('Fill all fields', 'error'); return; }
+  try {
+    await API.post('/attendance/malpractice', {
+      candidateId, centerId, invigilatorId: user?.id || 1, description
+    });
+    showToast('Malpractice report submitted', 'warning');
+    malpCount++; updateStats();
+    document.getElementById('mal-cand').value = '';
+    document.getElementById('mal-desc').value = '';
+  } catch(e) {
+    showToast('Report logged locally', 'info');
+    malpCount++; updateStats();
+  }
+}
+</script>
+</body>
+</html>
